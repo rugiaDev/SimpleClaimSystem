@@ -2180,6 +2180,25 @@ public class SimpleClaimSystem extends JavaPlugin {
     claimGuisInstance.loadGuiSettings();
   }
 
+  public void loadConfig(CommandSender sender) {
+    Runnable task = () -> {
+      try {
+        reloadConfig();
+
+        if (sender != null) {
+          sender.sendMessage(ChatColor.GREEN + "[SCS] config.yml reloaded.");
+        }
+      } catch (Exception e) {
+        if (sender != null) {
+          sender.sendMessage(ChatColor.RED + "[SCS] Failed to reload config.yml. Check console.");
+        }
+        e.printStackTrace();
+      }
+    };
+
+    executeSync(task);
+  }
+
   public void deleteDirectory(File dir) {
     if (dir.exists()) {
       for (File file : dir.listFiles()) {
@@ -2193,16 +2212,18 @@ public class SimpleClaimSystem extends JavaPlugin {
     }
   }
 
-  // class: SimpleClaimSystem
   private void createOrUpdateTables(Connection connection, boolean isMySql) throws SQLException {
     try (Statement stmt = connection.createStatement()) {
 
-      final String claimsSql;
-      final String playersSql;
+      Consumer<String> execIgnore = (sql) -> {
+        try {
+          stmt.executeUpdate(sql);
+        } catch (SQLException ignored) {
+        }
+      };
 
       if (isMySql) {
-        // ✅ MySQL: TEXT 계열은 DEFAULT 제거(가장 호환성 좋음)
-        claimsSql =
+        stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS scs_claims_1 ("
                         + "id INT AUTO_INCREMENT PRIMARY KEY, "
                         + "id_claim INT NOT NULL, "
@@ -2217,10 +2238,12 @@ public class SimpleClaimSystem extends JavaPlugin {
                         + "permissions VARCHAR(510) NOT NULL, "
                         + "for_sale TINYINT(1) NOT NULL DEFAULT 0, "
                         + "sale_price DOUBLE NOT NULL DEFAULT 0, "
-                        + "bans MEDIUMTEXT NOT NULL"
-                        + ")";
+                        + "bans MEDIUMTEXT NOT NULL, "
+                        + "UNIQUE KEY uk_owner_claimname (owner_uuid, claim_name)"
+                        + ")"
+        );
 
-        playersSql =
+        stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS scs_players ("
                         + "id INT AUTO_INCREMENT PRIMARY KEY, "
                         + "uuid_server CHAR(36) NOT NULL UNIQUE, "
@@ -2228,10 +2251,19 @@ public class SimpleClaimSystem extends JavaPlugin {
                         + "player_name VARCHAR(36) NOT NULL, "
                         + "player_head MEDIUMTEXT NOT NULL, "
                         + "player_textures MEDIUMTEXT NOT NULL"
-                        + ")";
+                        + ")"
+        );
+
+        execIgnore.accept("CREATE INDEX idx_claims_owner_uuid ON scs_claims_1 (owner_uuid)");
+        execIgnore.accept("CREATE INDEX idx_claims_owner_idclaim ON scs_claims_1 (owner_uuid, id_claim)");
+        execIgnore.accept("CREATE INDEX idx_claims_for_sale ON scs_claims_1 (for_sale)");
+        execIgnore.accept("CREATE INDEX idx_claims_world_name ON scs_claims_1 (world_name)");
+
+        execIgnore.accept("CREATE INDEX idx_players_uuid_mojang ON scs_players (uuid_mojang)");
+        execIgnore.accept("CREATE INDEX idx_players_player_name ON scs_players (player_name)");
+
       } else {
-        // ✅ SQLite: 문법 오류 수정 + 괄호 닫기
-        claimsSql =
+        stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS scs_claims_1 ("
                         + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                         + "id_claim INT NOT NULL, "
@@ -2247,9 +2279,10 @@ public class SimpleClaimSystem extends JavaPlugin {
                         + "for_sale TINYINT(1) NOT NULL DEFAULT 0, "
                         + "sale_price DOUBLE NOT NULL DEFAULT 0, "
                         + "bans TEXT NOT NULL DEFAULT ''"
-                        + ")";
+                        + ")"
+        );
 
-        playersSql =
+        stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS scs_players ("
                         + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                         + "uuid_server VARCHAR(36) NOT NULL UNIQUE, "
@@ -2257,15 +2290,22 @@ public class SimpleClaimSystem extends JavaPlugin {
                         + "player_name VARCHAR(36) NOT NULL, "
                         + "player_head TEXT NOT NULL, "
                         + "player_textures TEXT NOT NULL"
-                        + ")";
+                        + ")"
+        );
+
+        stmt.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS uk_owner_claimname ON scs_claims_1 (owner_uuid, claim_name)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_owner_uuid ON scs_claims_1 (owner_uuid)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_owner_idclaim ON scs_claims_1 (owner_uuid, id_claim)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_for_sale ON scs_claims_1 (for_sale)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_world_name ON scs_claims_1 (world_name)");
+
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_players_uuid_mojang ON scs_players (uuid_mojang)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_players_player_name ON scs_players (player_name)");
       }
 
-      stmt.executeUpdate(claimsSql);
-      stmt.executeUpdate(playersSql);
-
-      // 공통 보정
-      stmt.executeUpdate("UPDATE scs_claims_1 SET owner_uuid = '" + ClaimMain.SERVER_UUID + "' WHERE owner_uuid = 'none'");
+      stmt.executeUpdate(
+              "UPDATE scs_claims_1 SET owner_uuid = '" + ClaimMain.SERVER_UUID + "' WHERE owner_uuid = 'none'"
+      );
     }
   }
-
 }
