@@ -51,18 +51,18 @@ import net.md_5.bungee.api.chat.TextComponent;
 
 public class ClaimMain {
 
-	
+
     // ***************
     // *  Variables  *
     // ***************
 
-	
+
     /** List of claims by chunk. */
     private Map<Chunk, Claim> listClaims = new HashMap<>();
 
     /** Mapping of player uuid to their claims. */
     private Map<UUID, CustomSet<Claim>> playerClaims = new ConcurrentHashMap<>();
-    
+
     /** Key UUID for protected areas */
     public static final UUID SERVER_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
@@ -74,50 +74,50 @@ public class ClaimMain {
 
     /** Mapping of players to their active Folia tasks. */
     private final Map<Player, ScheduledTask> activeFoliaTasks = new ConcurrentHashMap<>();
-    
+
     /** Set of chunks particles */
     private CustomSet<Chunk> chunksParticles = new CustomSet<>();
 
     /** Set of command arguments for /claim. */
     private CustomSet<String> commandArgsClaim = new CustomSet<>(Set.of("add", "autoclaim", "automap", "list",
-            "map", "members", "remove", "see", "setdesc", "setname", "setspawn", "settings", 
+            "map", "members", "remove", "see", "setdesc", "setname", "setspawn", "settings",
             "tp", "chat", "ban", "unban", "bans", "owner", "autofly", "fly", "merge", "sell",
             "cancel", "addchunk", "removechunk", "chunks", "main", "kick", "autounclaim", "autoaddchunk", "autodelchunk",
             "accept", "deny", "cancelinv"));
 
     /** Set of command arguments for /scs. */
-    private CustomSet<String> commandArgsScs = new CustomSet<>(Set.of("reload", "config-reload", "transfer", "list", "player", "group", "forceunclaim", "setowner", "set-lang", 
+    private CustomSet<String> commandArgsScs = new CustomSet<>(Set.of("reload", "config-reload", "transfer", "list", "player", "group", "forceunclaim", "setowner", "set-lang",
             "reset-all-player-claims-settings", "reset-all-admin-claims-settings", "admin", "setexpulsionlocation"));
 
     /** Set of command arguments for /parea. */
     private CustomSet<String> commandArgsParea = new CustomSet<>(Set.of("setdesc", "settings", "setname", "members", "tp",
             "list", "ban", "unban", "bans", "add", "remove", "unclaim", "main", "kick"));
 
-    
+
     /** Instance of instance. */
     private SimpleClaimSystem instance;
-    
-    
+
+
     // ******************
     // *  Constructors  *
     // ******************
-    
-    
+
+
     /**
      * Constructor for 
      *
      * @param instance The instance of the SimpleClaimSystem plugin.
      */
     public ClaimMain(SimpleClaimSystem instance) {
-    	this.instance = instance;
+        this.instance = instance;
     }
 
-    
+
     // ********************
     // *  Others Methods  *
     // ********************
 
-    
+
     /**
      * Clears all maps and variables.
      */
@@ -128,26 +128,26 @@ public class ClaimMain {
         activeTasks.values().stream().forEach(t -> t.cancel());
         activeTasks.clear();
         if(instance.isFolia()) {
-        	activeFoliaTasks.values().stream().forEach(t -> t.cancel());
-        	activeFoliaTasks.clear();
+            activeFoliaTasks.values().stream().forEach(t -> t.cancel());
+            activeFoliaTasks.clear();
         }
     }
-    
+
     /**
      * Clear data for a player.
-     * 
+     *
      * @param player The player to clear data for.
      */
     public void clearDataForPlayer(Player player) {
-    	playerLocations.remove(player);
-    	if(activeTasks.containsKey(player)) {
-    		activeTasks.get(player).cancel();
-    		activeTasks.remove(player);
-    	}
-    	if(instance.isFolia() && activeFoliaTasks.containsKey(player)) {
-    		activeFoliaTasks.get(player).cancel();
-    		activeFoliaTasks.remove(player);
-    	}
+        playerLocations.remove(player);
+        if(activeTasks.containsKey(player)) {
+            activeTasks.get(player).cancel();
+            activeTasks.remove(player);
+        }
+        if(instance.isFolia() && activeFoliaTasks.containsKey(player)) {
+            activeFoliaTasks.get(player).cancel();
+            activeFoliaTasks.remove(player);
+        }
     }
 
     /**
@@ -158,9 +158,9 @@ public class ClaimMain {
      * @param type    the type of message (ACTION_BAR, SUBTITLE, TITLE, CHAT, BOSSBAR)
      */
     public void sendMessage(Player player, String message, String type) {
-    	if(message.isBlank()) {
-    		return;
-    	}
+        if(message.isBlank()) {
+            return;
+        }
         switch (type) {
             case "ACTION_BAR":
                 player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
@@ -205,7 +205,7 @@ public class ClaimMain {
                         b.setColor(BarColor.valueOf(instance.getSettings().getSetting("bossbar-color")));
                         b.setProgress(1);
                         Bukkit.getRegionScheduler().run(instance, player.getLocation(), task -> {
-                        	instance.getBossBars().activeBossBar(player, player.getLocation().getChunk());
+                            instance.getBossBars().activeBossBar(player, player.getLocation().getChunk());
                         });
                     } else {
                         counter[0]--;
@@ -225,7 +225,7 @@ public class ClaimMain {
                         b.setColor(BarColor.valueOf(instance.getSettings().getSetting("bossbar-color")));
                         b.setProgress(1);
                         Bukkit.getRegionScheduler().run(instance, player.getLocation(), subsubtask -> {
-                        	instance.getBossBars().activeBossBar(player, player.getLocation().getChunk());
+                            instance.getBossBars().activeBossBar(player, player.getLocation().getChunk());
                         });
                     }
                 }, 0, 100, TimeUnit.MILLISECONDS);
@@ -263,10 +263,10 @@ public class ClaimMain {
         };
         updateTask.run();
     }
-    
+
     /**
      * Returns the number separated with commas for big numbers.
-     * 
+     *
      * @param text The number in string format.
      * @return The string with new format.
      */
@@ -285,7 +285,7 @@ public class ClaimMain {
 
         return sb.toString();
     }
-    
+
     /**
      * Formats a numerical string to a shortened version with appropriate suffixes (k, m, M, b, B, t, T).
      *
@@ -340,36 +340,36 @@ public class ClaimMain {
             return text;
         }
     }
-    
+
     /**
      * Gets the right syntax of the price.
-     * 
+     *
      * @param price The price.
      * @return The right syntax of the given price.
      */
     public String getPrice(long price) {
-    	if(instance.getSettings().getBooleanSetting("use-formatted-number")) {
-    		return getNumberFormatted(String.valueOf(price));
-    	} else {
-    		return getNumberSeparate(String.valueOf(price));
-    	}
+        if(instance.getSettings().getBooleanSetting("use-formatted-number")) {
+            return getNumberFormatted(String.valueOf(price));
+        } else {
+            return getNumberSeparate(String.valueOf(price));
+        }
     }
-    
+
     /**
      * Gets the right syntax of the price.
-     * 
+     *
      * @param price The price.
      * @return The right syntax of the given price.
      */
     public String getPrice(String price) {
-    	if(instance.getSettings().getBooleanSetting("use-formatted-number")) {
-    		return getNumberFormatted(price);
-    	} else {
-    		return getNumberSeparate(price);
-    	}
+        if(instance.getSettings().getBooleanSetting("use-formatted-number")) {
+            return getNumberFormatted(price);
+        } else {
+            return getNumberSeparate(price);
+        }
     }
 
-    
+
     // ********************
     // *  CLAIMS Methods  *
     // ********************
@@ -384,7 +384,7 @@ public class ClaimMain {
     public Claim getClaim(Chunk chunk) {
         return listClaims.get(chunk);
     }
-    
+
     /**
      * Gets a claim by its name.
      *
@@ -398,7 +398,7 @@ public class ClaimMain {
                 .findFirst()
                 .orElse(null);
     }
-    
+
     /**
      * Gets a claim by its name.
      *
@@ -412,7 +412,7 @@ public class ClaimMain {
                 .findFirst()
                 .orElse(null);
     }
-    
+
     /**
      * Gets a protected area by its name.
      *
@@ -420,24 +420,24 @@ public class ClaimMain {
      * @return The claim associated with the name, or null if none exists
      */
     public Claim getProtectedAreaByName(String name) {
-    	return playerClaims.getOrDefault(SERVER_UUID, new CustomSet<>()).stream()
-    			.filter(claim -> claim.getName().equalsIgnoreCase(name))
-    			.findFirst()
-    			.orElse(null);
+        return playerClaims.getOrDefault(SERVER_UUID, new CustomSet<>()).stream()
+                .filter(claim -> claim.getName().equalsIgnoreCase(name))
+                .findFirst()
+                .orElse(null);
     }
-    
+
     /**
      * Gets the set of protected areas claim object.
-     * 
+     *
      * @return The set of claim of protected areas.
      */
     public CustomSet<Claim> getProtectedAreas(){
-    	return playerClaims.getOrDefault(SERVER_UUID, new CustomSet<>());
+        return playerClaims.getOrDefault(SERVER_UUID, new CustomSet<>());
     }
-    
+
     /**
      * Gets all chunks of all claims of a player
-     * 
+     *
      * @param owner The name of the owner of claims
      * @return A set of chunks
      */
@@ -448,10 +448,10 @@ public class ClaimMain {
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toCollection(CustomSet::new));
     }
-    
+
     /**
      * Gets all chunks of all protected areas
-     * 
+     *
      * @return A set of chunks
      */
     public CustomSet<Chunk> getAllChunksFromAllProtectedAreas() {
@@ -461,7 +461,7 @@ public class ClaimMain {
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toCollection(CustomSet::new));
     }
-    
+
     /**
      * Gets a set of claims in sale of a player.
      *
@@ -483,11 +483,11 @@ public class ClaimMain {
      */
     public CustomSet<Claim> getPlayerClaims(String owner) {
         return listClaims.values()
-                         .stream()
-                         .filter(claim -> claim.getOwner().equalsIgnoreCase(owner))
-                         .collect(Collectors.toCollection(CustomSet::new));
+                .stream()
+                .filter(claim -> claim.getOwner().equalsIgnoreCase(owner))
+                .collect(Collectors.toCollection(CustomSet::new));
     }
-    
+
     /**
      * Gets the list of claims for the specified owner.
      *
@@ -497,15 +497,15 @@ public class ClaimMain {
     public CustomSet<Claim> getPlayerClaims(UUID targetUUID) {
         return playerClaims.getOrDefault(targetUUID, new CustomSet<>());
     }
-    
+
     /**
      * Sets the new claims list for a UUID.
-     * 
+     *
      * @param targetUUID The owner's uuid of the claims
      * @param claims The set of new claims
      */
     public void setPlayerClaims(UUID targetUUID, CustomSet<Claim> claims) {
-    	playerClaims.put(targetUUID, claims);
+        playerClaims.put(targetUUID, claims);
     }
 
     /**
@@ -517,7 +517,7 @@ public class ClaimMain {
     public Claim getClaimFromChunk(Chunk chunk) {
         return listClaims.get(chunk);
     }
-    
+
     /**
      * Gets the set of chunks in String format
      *
@@ -546,15 +546,15 @@ public class ClaimMain {
      * @return a map of claim owners and their claim counts
      */
     public Map<String, Integer> getClaimsOwnersGui() {
-    	Map<String,Integer> players = new HashMap<>();
-    	playerClaims.keySet().stream().forEach(UUID -> {
-    		if(!UUID.equals(SERVER_UUID)) {
-    			players.put(instance.getPlayerMain().getPlayerName(UUID), playerClaims.get(UUID).size());
-    		}
-    	});
+        Map<String,Integer> players = new HashMap<>();
+        playerClaims.keySet().stream().forEach(UUID -> {
+            if(!UUID.equals(SERVER_UUID)) {
+                players.put(instance.getPlayerMain().getPlayerName(UUID), playerClaims.get(UUID).size());
+            }
+        });
         return players;
     }
-    
+
     /**
      * Gets all the claim owners (excluding admin).
      *
@@ -578,7 +578,7 @@ public class ClaimMain {
         return listClaims.keySet().stream()
                 .collect(Collectors.toCollection(CustomSet::new));
     }
-    
+
     /**
      * Gets all claims.
      *
@@ -588,23 +588,23 @@ public class ClaimMain {
         return listClaims.values().stream()
                 .collect(Collectors.toCollection(CustomSet::new));
     }
-    
+
     /**
      * Gets the claims count (total)
-     * 
+     *
      * @return an integer of the total claims count
      */
     public int getAllClaimsCount() {
-    	return listClaims.values().size();
+        return listClaims.values().size();
     }
-    
+
     /**
      * Gets the claims count of protected areas
-     * 
+     *
      * @return an integer of the protected areas claims count
      */
     public int getProtectedAreasCount() {
-    	return playerClaims.getOrDefault(SERVER_UUID,new CustomSet<>()).size();
+        return playerClaims.getOrDefault(SERVER_UUID,new CustomSet<>()).size();
     }
 
     /**
@@ -628,19 +628,19 @@ public class ClaimMain {
      */
     public Map<String, Integer> getClaimsOnlineOwners() {
         return playerClaims.values().stream()
-                .flatMap(Set::stream) 
+                .flatMap(Set::stream)
                 .filter(claim -> {
                     Player player = Bukkit.getPlayer(claim.getOwner());
                     return player != null && player.isOnline() && !claim.getUUID().equals(SERVER_UUID);
                 })
                 .collect(Collectors.toConcurrentMap(
-                        Claim::getOwner, 
-                        claim -> 1, 
-                        Integer::sum, 
-                        ConcurrentHashMap::new 
+                        Claim::getOwner,
+                        claim -> 1,
+                        Integer::sum,
+                        ConcurrentHashMap::new
                 ));
     }
-    
+
     /**
      * Gets all claim owners with claims in sale and their claim counts.
      *
@@ -655,7 +655,7 @@ public class ClaimMain {
                         entry -> {
                             CustomSet<Claim> claims = entry.getValue();
                             return claims.isEmpty() ? "Unknown" : claims.iterator().next().getOwner();
-                        }, 
+                        },
                         entry -> (int) entry.getValue().stream().filter(Claim::getSale).count(),
                         (oldValue, newValue) -> oldValue
                 ));
@@ -688,8 +688,8 @@ public class ClaimMain {
      * @return a set of claims where the player is a member but not the owner
      */
     public CustomSet<Claim> getClaimsWhereMemberNotOwner(Player player) {
-    	UUID playerId = player.getUniqueId();
-    	String playerName = player.getName();
+        UUID playerId = player.getUniqueId();
+        String playerName = player.getName();
         return listClaims.entrySet().stream()
                 .filter(entry -> !entry.getValue().getOwner().equals(playerName) && entry.getValue().getMembers().contains(playerId))
                 .map(Map.Entry::getValue)
@@ -737,7 +737,7 @@ public class ClaimMain {
                 .distinct()
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * Converts a set of UUIDs to a set of player names using instance.getPlayerMain().getPlayerName(UUID).
      *
@@ -750,7 +750,7 @@ public class ClaimMain {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(CustomSet::new));
     }
-    
+
     /**
      * Checks if all chunks in the set are from the same world.
      *
@@ -773,7 +773,7 @@ public class ClaimMain {
 
         return true;
     }
-    
+
     /**
      * Checks if at least one chunk in the given set is adjacent to the specified chunk.
      *
@@ -794,20 +794,20 @@ public class ClaimMain {
             int z = chunk.getZ();
 
             // Check adjacency (4 directions)
-            if ((x == targetX + 1 && z == targetZ) || 
-                (x == targetX - 1 && z == targetZ) || 
-                (x == targetX && z == targetZ + 1) || 
-                (x == targetX && z == targetZ - 1)) {
+            if ((x == targetX + 1 && z == targetZ) ||
+                    (x == targetX - 1 && z == targetZ) ||
+                    (x == targetX && z == targetZ + 1) ||
+                    (x == targetX && z == targetZ - 1)) {
                 return true;
             }
         }
 
         return false;
     }
-    
+
     /**
      * Checks if all chunks in a set are adjacent (connected).
-     * 
+     *
      * @param chunks The set of chunks to check.
      * @return true if all chunks are connected, false otherwise.
      */
@@ -818,7 +818,7 @@ public class ClaimMain {
         Set<Chunk> remainingChunks = new HashSet<>(chunks);
         Queue<Chunk> queue = new ArrayDeque<>();
         Chunk start = remainingChunks.iterator().next();
-        
+
         queue.add(start);
         remainingChunks.remove(start);
 
@@ -830,9 +830,9 @@ public class ClaimMain {
             // Check and add adjacent chunks
             remainingChunks.removeIf(chunk -> {
                 if ((chunk.getX() == x + 1 && chunk.getZ() == z) ||
-                    (chunk.getX() == x - 1 && chunk.getZ() == z) ||
-                    (chunk.getX() == x && chunk.getZ() == z + 1) ||
-                    (chunk.getX() == x && chunk.getZ() == z - 1)) {
+                        (chunk.getX() == x - 1 && chunk.getZ() == z) ||
+                        (chunk.getX() == x && chunk.getZ() == z + 1) ||
+                        (chunk.getX() == x && chunk.getZ() == z - 1)) {
                     queue.add(chunk);
                     return true;
                 }
@@ -867,10 +867,10 @@ public class ClaimMain {
                 int z2 = chunk2.getZ();
 
                 // Check adjacency (4 directions)
-                if ((x1 == x2 + 1 && z1 == z2) || 
-                    (x1 == x2 - 1 && z1 == z2) || 
-                    (x1 == x2 && z1 == z2 + 1) || 
-                    (x1 == x2 && z1 == z2 - 1)) {
+                if ((x1 == x2 + 1 && z1 == z2) ||
+                        (x1 == x2 - 1 && z1 == z2) ||
+                        (x1 == x2 && z1 == z2 + 1) ||
+                        (x1 == x2 && z1 == z2 - 1)) {
                     return true;
                 }
             }
@@ -924,30 +924,30 @@ public class ClaimMain {
      */
     public void teleportPlayer(Player player, Location loc) {
         if (instance.isFolia()) {
-        	Location playerLoc = player.getLocation();
-        	if (player.isOnline() && !player.isDead()) {
+            Location playerLoc = player.getLocation();
+            if (player.isOnline() && !player.isDead()) {
                 player.teleportAsync(loc).thenAccept(success -> {
-                	instance.executeSync(() -> {
-    		    		PlayerTeleportEvent e = new PlayerTeleportEvent(player, playerLoc, loc);
-    		    		Bukkit.getPluginManager().callEvent(e);
-                	});
+                    instance.executeSync(() -> {
+                        PlayerTeleportEvent e = new PlayerTeleportEvent(player, playerLoc, loc);
+                        Bukkit.getPluginManager().callEvent(e);
+                    });
                 });
-        	}
+            }
         } else if (player.isOnline() && !player.isDead()) {
             player.teleport(loc);
         }
     }
-    
+
     /**
      * Teleports the player to expulsion location.
-     * 
+     *
      * @param player The player to teleport.
      */
     public void teleportPlayerToExpulsion(Player player) {
-    	Location loc = instance.getSettings().getExpulsionLocation();
-    	teleportPlayer(player,loc == null ? Bukkit.getWorlds().get(0).getSpawnLocation() : loc);
+        Location loc = instance.getSettings().getExpulsionLocation();
+        teleportPlayer(player,loc == null ? Bukkit.getWorlds().get(0).getSpawnLocation() : loc);
     }
-    
+
     /**
      * Creates the teleport task for goClaim method.
      *
@@ -970,10 +970,10 @@ public class ClaimMain {
 
                 if (!instance.getSettings().getBooleanSetting("teleportation-delay-moving")) {
                     Location currentLocation = player.getLocation();
-                    if (!currentLocation.equals(originalLocation) && 
-                            (currentLocation.getX() != originalLocation.getX() || 
-                             currentLocation.getY() != originalLocation.getY() || 
-                             currentLocation.getZ() != originalLocation.getZ())) {
+                    if (!currentLocation.equals(originalLocation) &&
+                            (currentLocation.getX() != originalLocation.getX() ||
+                                    currentLocation.getY() != originalLocation.getY() ||
+                                    currentLocation.getZ() != originalLocation.getZ())) {
                         player.sendMessage(instance.getLanguage().getMessage("teleportation-canceled-moving"));
                         playerLocations.remove(player);
                         return;
@@ -1028,7 +1028,7 @@ public class ClaimMain {
         String z = String.valueOf(Math.round(loc.getZ() * 10.0 / 10.0));
         return world + ", " + x + ", " + y + ", " + z;
     }
-    
+
     /**
      * Finds a free ID for a new claim.
      *
@@ -1042,7 +1042,7 @@ public class ClaimMain {
                 .max()
                 .orElse(-1) + 1;
     }
-    
+
     /**
      * Finds a free ID for a new protected area.
      *
@@ -1055,7 +1055,7 @@ public class ClaimMain {
                 .max()
                 .orElse(-1) + 1;
     }
-    
+
     /**
      * Gets the location of the center of the chunk with the Y-coordinate at the maximum height.
      *
@@ -1069,7 +1069,7 @@ public class ClaimMain {
         int maxY = world.getHighestBlockYAt(centerX, centerZ);
         return new Location(world, centerX, maxY, centerZ);
     }
-    
+
     /**
      * Replaces the character at the specified index in the given string with the specified new character.
      *
@@ -1112,7 +1112,7 @@ public class ClaimMain {
         sb.deleteCharAt(index);
         return sb.toString();
     }
-    
+
     /**
      * Removes characters from the given string at the specified indices.
      *
@@ -1138,7 +1138,7 @@ public class ClaimMain {
 
         return sb.toString();
     }
-    
+
     /**
      * Class for converting claim
      */
@@ -1173,15 +1173,15 @@ public class ClaimMain {
             this.bans = bans;
         }
     }
-    
+
     /**
      * Converts old local to new local
      */
     public void convertLocalToNewLocal() {
-    	
-    	StringBuilder natural = new StringBuilder();
-    	StringBuilder visitors = new StringBuilder();
-    	StringBuilder members_ = new StringBuilder();
+
+        StringBuilder natural = new StringBuilder();
+        StringBuilder visitors = new StringBuilder();
+        StringBuilder members_ = new StringBuilder();
 
         for (String key : instance.getSettings().getDefaultValues().get("natural").keySet()) {
             if (instance.getSettings().getDefaultValues().get("natural").get(key)) {
@@ -1190,7 +1190,7 @@ public class ClaimMain {
             }
             natural.append("0");
         }
-        
+
         for (String key : instance.getSettings().getDefaultValues().get("visitors").keySet()) {
             if (instance.getSettings().getDefaultValues().get("visitors").get(key)) {
                 visitors.append("1");
@@ -1198,7 +1198,7 @@ public class ClaimMain {
             }
             visitors.append("0");
         }
-        
+
         for (String key : instance.getSettings().getDefaultValues().get("members").keySet()) {
             if (instance.getSettings().getDefaultValues().get("members").get(key)) {
                 members_.append("1");
@@ -1206,12 +1206,12 @@ public class ClaimMain {
             }
             members_.append("0");
         }
-        
+
         instance.getSettings().setDefaultValuesCode(natural.toString(),"natural");
         instance.getSettings().setDefaultValuesCode(visitors.toString(),"visitors");
         instance.getSettings().setDefaultValuesCode(members_.toString(),"members");
-    	
-    	instance.info("Starting the conversion.");
+
+        instance.info("Starting the conversion.");
         HikariConfig localConfig = new HikariConfig();
         localConfig.setJdbcUrl("jdbc:sqlite:plugins/SimpleClaimSystem/claims.db");
         localConfig.addDataSourceProperty("busy_timeout", "5000"); // Set busy timeout to 5 seconds
@@ -1241,7 +1241,7 @@ public class ClaimMain {
                     String location = rs.getString("Location");
                     String members = rs.getString("Members");
                     String permissions = instance.getSettings().getDefaultValuesCode("all");
-                    
+
                     boolean for_sale = rs.getBoolean("isSale");
                     double sale_price = rs.getDouble("SalePrice");
                     String bans = rs.getString("Bans");
@@ -1330,9 +1330,9 @@ public class ClaimMain {
                     ex.printStackTrace();
                     return null;
                 }).join(); // Ensure all async operations complete before finishing
-                
+
                 Runnable task = () -> {
-                	if (localDataSource != null) {
+                    if (localDataSource != null) {
                         localDataSource.close();
                     }
 
@@ -1345,14 +1345,14 @@ public class ClaimMain {
                         }
                     }
                 };
-                
+
                 if(instance.isFolia()) {
-                	Bukkit.getAsyncScheduler().runDelayed(instance, t -> task.run(), 10, TimeUnit.SECONDS);
+                    Bukkit.getAsyncScheduler().runDelayed(instance, t -> task.run(), 10, TimeUnit.SECONDS);
                 } else {
                     Bukkit.getScheduler().runTaskLater(instance, new Runnable() {
                         @Override
                         public void run() {
-                        	task.run();
+                            task.run();
                         }
                     }, 200L); // 20 ticks = 1 seconde, donc 200 ticks = 10 secondes
                 }
@@ -1362,15 +1362,15 @@ public class ClaimMain {
             e.printStackTrace();
         }
     }
-    
+
     /**
      * Converts old distant to new distant
      */
     public void convertDistantToNewDistant() {
-    	
-    	StringBuilder natural = new StringBuilder();
-    	StringBuilder visitors = new StringBuilder();
-    	StringBuilder members_ = new StringBuilder();
+
+        StringBuilder natural = new StringBuilder();
+        StringBuilder visitors = new StringBuilder();
+        StringBuilder members_ = new StringBuilder();
 
         for (String key : instance.getSettings().getDefaultValues().get("natural").keySet()) {
             if (instance.getSettings().getDefaultValues().get("natural").get(key)) {
@@ -1379,7 +1379,7 @@ public class ClaimMain {
             }
             natural.append("0");
         }
-        
+
         for (String key : instance.getSettings().getDefaultValues().get("visitors").keySet()) {
             if (instance.getSettings().getDefaultValues().get("visitors").get(key)) {
                 visitors.append("1");
@@ -1387,7 +1387,7 @@ public class ClaimMain {
             }
             visitors.append("0");
         }
-        
+
         for (String key : instance.getSettings().getDefaultValues().get("members").keySet()) {
             if (instance.getSettings().getDefaultValues().get("members").get(key)) {
                 members_.append("1");
@@ -1395,74 +1395,74 @@ public class ClaimMain {
             }
             members_.append("0");
         }
-        
+
         instance.getSettings().setDefaultValuesCode(natural.toString(),"natural");
         instance.getSettings().setDefaultValuesCode(visitors.toString(),"visitors");
         instance.getSettings().setDefaultValuesCode(members_.toString(),"members");
-    	
-    	int count = 0;
+
+        int count = 0;
         try (Connection connection = instance.getDataSource().getConnection()) {
             String getQuery = "SELECT * FROM scs_claims";
             try (PreparedStatement preparedStatement = connection.prepareStatement(getQuery)) {
                 try (ResultSet rs = preparedStatement.executeQuery()) {
                     while (rs.next()) {
-        	   
-                    	int id = rs.getInt("id");
-		        	    String owner_name = rs.getString("name");
-		        	    String owner_uuid = owner_name.equals("*") ? SERVER_UUID.toString() : rs.getString("uuid");
-		        	    String claim_name = rs.getString("claim_name");
-		        	    String claim_description = rs.getString("claim_description");
-		        	    String world_name = rs.getString("World");
+
+                        int id = rs.getInt("id");
+                        String owner_name = rs.getString("name");
+                        String owner_uuid = owner_name.equals("*") ? SERVER_UUID.toString() : rs.getString("uuid");
+                        String claim_name = rs.getString("claim_name");
+                        String claim_description = rs.getString("claim_description");
+                        String world_name = rs.getString("World");
                         World check_world = Bukkit.getWorld(world_name);
                         World world = check_world == null ? Bukkit.createWorld(new WorldCreator(world_name)) : check_world;
                         if(world == null) continue;
-		        	    String location = rs.getString("Location");
-		        	    String members = rs.getString("Members");
-		        	    String permissions = instance.getSettings().getDefaultValuesCode("all");
-		        	    boolean for_sale = rs.getBoolean("isSale");
-		        	    Double sale_price = rs.getDouble("SalePrice");
-		        	    String bans = rs.getString("Bans");
-		        	    Set<Chunk> chunks = ConcurrentHashMap.newKeySet();
-		        	   
-		                List<Integer> X = Arrays.stream(rs.getString("X").split(";"))
-		                		.map(String::trim)
-		                        .map(Integer::parseInt)
-		                        .collect(Collectors.toList());
-		                List<Integer> Z = Arrays.stream(rs.getString("Z").split(";"))
-		                        .map(String::trim)
-		                        .map(Integer::parseInt)
-		                        .collect(Collectors.toList());
-		                if(X.size() != Z.size()) continue;
-		               
-		                Iterator<Integer> xIterator = X.iterator();
-		                Iterator<Integer> zIterator = Z.iterator();
-		               
-		                count++;
-		               
-		                Runnable task = () -> {
-		            	    instance.executeAsync(() -> {
-		                        try (PreparedStatement stmt = connection.prepareStatement("INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-								    stmt.setInt(1, id);
-								    stmt.setString(2, owner_uuid);
-								    stmt.setString(3, owner_name);
-								    stmt.setString(4, claim_name);
-								    stmt.setString(5, claim_description);
-								    stmt.setString(6, serializeChunks(chunks));
-								    stmt.setString(7, world_name);
-								    stmt.setString(8, location);
-								    stmt.setString(9, members);
-							 	    stmt.setString(10, permissions);
-							 	    stmt.setBoolean(11, for_sale);
-								    stmt.setDouble(12, sale_price);
-								    stmt.setString(13, bans);
-								    stmt.executeUpdate();
-		                        } catch (SQLException e) {
-		                    	    e.printStackTrace();
-		                        }
-		            	    });
-		                };
-		               
-		                if (instance.isFolia()) {
+                        String location = rs.getString("Location");
+                        String members = rs.getString("Members");
+                        String permissions = instance.getSettings().getDefaultValuesCode("all");
+                        boolean for_sale = rs.getBoolean("isSale");
+                        Double sale_price = rs.getDouble("SalePrice");
+                        String bans = rs.getString("Bans");
+                        Set<Chunk> chunks = ConcurrentHashMap.newKeySet();
+
+                        List<Integer> X = Arrays.stream(rs.getString("X").split(";"))
+                                .map(String::trim)
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                        List<Integer> Z = Arrays.stream(rs.getString("Z").split(";"))
+                                .map(String::trim)
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                        if(X.size() != Z.size()) continue;
+
+                        Iterator<Integer> xIterator = X.iterator();
+                        Iterator<Integer> zIterator = Z.iterator();
+
+                        count++;
+
+                        Runnable task = () -> {
+                            instance.executeAsync(() -> {
+                                try (PreparedStatement stmt = connection.prepareStatement("INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                                    stmt.setInt(1, id);
+                                    stmt.setString(2, owner_uuid);
+                                    stmt.setString(3, owner_name);
+                                    stmt.setString(4, claim_name);
+                                    stmt.setString(5, claim_description);
+                                    stmt.setString(6, serializeChunks(chunks));
+                                    stmt.setString(7, world_name);
+                                    stmt.setString(8, location);
+                                    stmt.setString(9, members);
+                                    stmt.setString(10, permissions);
+                                    stmt.setBoolean(11, for_sale);
+                                    stmt.setDouble(12, sale_price);
+                                    stmt.setString(13, bans);
+                                    stmt.executeUpdate();
+                                } catch (SQLException e) {
+                                    e.printStackTrace();
+                                }
+                            });
+                        };
+
+                        if (instance.isFolia()) {
                             List<CompletableFuture<Void>> futures = new ArrayList<>();
 
                             while (xIterator.hasNext() && zIterator.hasNext()) {
@@ -1502,16 +1502,16 @@ public class ClaimMain {
             e.printStackTrace();
         }
     }
-    
+
     /**
      * Imports the claims from XClaims
      */
     public void importFromXClaims(CommandSender sender) {
-    	instance.executeAsync(() -> {
-    		File file = new File("plugins/SimpleClaimSystem/xclaims.yml");
-    		int[] i = {0};
-    		
-    		FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+        instance.executeAsync(() -> {
+            File file = new File("plugins/SimpleClaimSystem/xclaims.yml");
+            int[] i = {0};
+
+            FileConfiguration config = YamlConfiguration.loadConfiguration(file);
 
             Set<String> claimKeys = config.getKeys(false);
 
@@ -1529,31 +1529,31 @@ public class ClaimMain {
                 String users = String.join(";", list_users);
                 ConfigurationSection chunkSection = config.getConfigurationSection(key + ".chunks");
                 Set<Chunk> chunks = ConcurrentHashMap.newKeySet();
-                
+
                 Runnable task = () -> {
-            		
+
                     Location loc = getCenterLocationOfChunk(chunks.iterator().next());
                     String chunksData = serializeChunks(chunks);
                     try (Connection connection = instance.getDataSource().getConnection();
-                            PreparedStatement stmt = connection.prepareStatement(
-                                    "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-                           stmt.setInt(1, id);
-                       	   stmt.setString(2, owner);
-                           stmt.setString(3, owner_name);
-                           stmt.setString(4, claim_name);
-                           stmt.setString(5, instance.getLanguage().getMessage("default-description"));
-                           stmt.setString(6, chunksData);
-                           stmt.setString(7, world_name);
-                           stmt.setString(8, getLocationString(loc));
-                           stmt.setString(9, users);
-                           stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
-                           stmt.executeUpdate();
-                           i[0]++;
-                       } catch (SQLException e) {
-                           e.printStackTrace();
-                       }
+                         PreparedStatement stmt = connection.prepareStatement(
+                                 "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                        stmt.setInt(1, id);
+                        stmt.setString(2, owner);
+                        stmt.setString(3, owner_name);
+                        stmt.setString(4, claim_name);
+                        stmt.setString(5, instance.getLanguage().getMessage("default-description"));
+                        stmt.setString(6, chunksData);
+                        stmt.setString(7, world_name);
+                        stmt.setString(8, getLocationString(loc));
+                        stmt.setString(9, users);
+                        stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
+                        stmt.executeUpdate();
+                        i[0]++;
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
                 };
-                
+
                 List<CompletableFuture<Void>> futures = new ArrayList<>();
                 for (String chunkId : chunkSection.getKeys(false)) {
                     int x = chunkSection.getInt(chunkId + ".x");
@@ -1584,104 +1584,104 @@ public class ClaimMain {
                     return null;
                 });
             }
-    		
-    		instance.executeSync(() -> {
-    			sender.sendMessage(getNumberSeparate(String.valueOf(i[0]))+" imported claims, reloading..");
-    			Bukkit.dispatchCommand(sender, "scs reload");
-    		});
-    	});
+
+            instance.executeSync(() -> {
+                sender.sendMessage(getNumberSeparate(String.valueOf(i[0]))+" imported claims, reloading..");
+                Bukkit.dispatchCommand(sender, "scs reload");
+            });
+        });
     }
-    
+
     /**
      * Imports the claims from GriefPrevention
      */
     public void importFromGriefPrevention(CommandSender sender) {
-    	instance.executeAsync(() -> {
-    		int[] i = {0};
-    		for (me.ryanhamshire.GriefPrevention.Claim claim : GriefPrevention.instance.dataStore.getClaims()) {
-        		// Get data of the claim
-        		Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
-        		String owner = claim.getOwnerName();
-        		UUID trueUUID = claim.getOwnerID();
-        		if(trueUUID == null) continue;
-        		String uuid = trueUUID.toString();
-        		int id = findFreeId(trueUUID);
-        		String claim_name = "claim-"+ String.valueOf(id);
-        		
-        		// Check if the chunks are in the same world, even skip
-        		if(!instance.getMain().areChunksInSameWorld(chunks)) continue;
+        instance.executeAsync(() -> {
+            int[] i = {0};
+            for (me.ryanhamshire.GriefPrevention.Claim claim : GriefPrevention.instance.dataStore.getClaims()) {
+                // Get data of the claim
+                Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
+                String owner = claim.getOwnerName();
+                UUID trueUUID = claim.getOwnerID();
+                if(trueUUID == null) continue;
+                String uuid = trueUUID.toString();
+                int id = findFreeId(trueUUID);
+                String claim_name = "claim-"+ String.valueOf(id);
 
-        		// Check if one of the chunk is not already taken by an other claim, even skip
-        		boolean check = false;
-        		Chunk last_chunk = null;
-        		for(Chunk c : chunks) {
-        			last_chunk = c;
-        			if(listClaims.containsKey(c)) {
-        				check = true;
-        			}
-        		}
-        		if(check) continue;
-        		
-        		// Check if the selected chunk is not null, even get chunk data
-        		if(last_chunk == null);
-        		Location loc = getCenterLocationOfChunk(last_chunk);
-        		String world = last_chunk.getWorld().getName();
-                
+                // Check if the chunks are in the same world, even skip
+                if(!instance.getMain().areChunksInSameWorld(chunks)) continue;
+
+                // Check if one of the chunk is not already taken by an other claim, even skip
+                boolean check = false;
+                Chunk last_chunk = null;
+                for(Chunk c : chunks) {
+                    last_chunk = c;
+                    if(listClaims.containsKey(c)) {
+                        check = true;
+                    }
+                }
+                if(check) continue;
+
+                // Check if the selected chunk is not null, even get chunk data
+                if(last_chunk == null);
+                Location loc = getCenterLocationOfChunk(last_chunk);
+                String world = last_chunk.getWorld().getName();
+
                 String chunksData = serializeChunks(chunks);
-                
+
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection();
-                        PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-                       stmt.setInt(1, id);
-                   	   stmt.setString(2, uuid);
-                       stmt.setString(3, owner);
-                       stmt.setString(4, claim_name);
-                       stmt.setString(5, instance.getLanguage().getMessage("default-description"));
-                       stmt.setString(6, chunksData);
-                       stmt.setString(7, world);
-                       stmt.setString(8, getLocationString(loc));
-                       stmt.setString(9, owner);
-                       stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
-                       stmt.executeUpdate();
-                       i[0]++;
-                   } catch (SQLException e) {
-                       e.printStackTrace();
-                   }
-        	}
-    		instance.executeSync(() -> {
-    			sender.sendMessage(getNumberSeparate(String.valueOf(i[0]))+" imported claims, reloading..");
-    			Bukkit.dispatchCommand(sender, "scs reload");
-    		});
-    	});
+                     PreparedStatement stmt = connection.prepareStatement(
+                             "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                    stmt.setInt(1, id);
+                    stmt.setString(2, uuid);
+                    stmt.setString(3, owner);
+                    stmt.setString(4, claim_name);
+                    stmt.setString(5, instance.getLanguage().getMessage("default-description"));
+                    stmt.setString(6, chunksData);
+                    stmt.setString(7, world);
+                    stmt.setString(8, getLocationString(loc));
+                    stmt.setString(9, owner);
+                    stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
+                    stmt.executeUpdate();
+                    i[0]++;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            instance.executeSync(() -> {
+                sender.sendMessage(getNumberSeparate(String.valueOf(i[0]))+" imported claims, reloading..");
+                Bukkit.dispatchCommand(sender, "scs reload");
+            });
+        });
     }
 
     /**
      * Transfers local claims database to a distant database.
      */
     public void transferClaims() {
-    	instance.executeAsync(() -> {;
-    	
-    		try (Connection connection = instance.getDataSource().getConnection()) {
-    			
+        instance.executeAsync(() -> {;
+
+            try (Connection connection = instance.getDataSource().getConnection()) {
+
                 try (Statement stmt = connection.createStatement()) {
-                	
-                	String sql = "TRUNCATE TABLE scs_claims_1";
-                	stmt.executeUpdate(sql);
-                	
-                	sql = "TRUNCATE TABLE scs_players";
-                	stmt.executeUpdate(sql);
-                		
-        		} catch (SQLException e) {
+
+                    String sql = "TRUNCATE TABLE scs_claims_1";
+                    stmt.executeUpdate(sql);
+
+                    sql = "TRUNCATE TABLE scs_players";
+                    stmt.executeUpdate(sql);
+
+                } catch (SQLException e) {
                     e.printStackTrace();
                 }
-    			
-    		} catch (SQLException e) {
+
+            } catch (SQLException e) {
                 e.printStackTrace();
             }
-    	
-    		boolean check = false;
-    		boolean check2 = false;
+
+            boolean check = false;
+            boolean check2 = false;
             HikariConfig localConfig = new HikariConfig();
             localConfig.setJdbcUrl("jdbc:sqlite:plugins/SimpleClaimSystem/storage.db");
             localConfig.setDriverClassName("org.sqlite.JDBC");
@@ -1719,41 +1719,41 @@ public class ClaimMain {
                 e.printStackTrace();
                 check = false;
             }
-            
-            try (HikariDataSource localDataSource = new HikariDataSource(localConfig);
-                    Connection localConn = localDataSource.getConnection();
-                    PreparedStatement selectStmt = localConn.prepareStatement("SELECT uuid_server, uuid_mojang, player_name, player_head, player_textures FROM scs_players");
-                    ResultSet rs = selectStmt.executeQuery();
-                    Connection remoteConn = instance.getDataSource().getConnection();
-                    PreparedStatement insertStmt = remoteConn.prepareStatement(
-                            "INSERT INTO scs_players (uuid_server, uuid_mojang, player_name, player_head, player_textures) VALUES (?, ?, ?, ?, ?)"
-                    )) {
 
-                   int count = 0;
-                   while (rs.next()) {
-                       insertStmt.setString(1, rs.getString("uuid_server"));
-                       insertStmt.setString(2, rs.getString("uuid_mojang"));
-                       insertStmt.setString(3, rs.getString("player_name"));
-                       insertStmt.setString(4, rs.getString("player_head"));
-                       insertStmt.setString(5, rs.getString("player_textures"));
-                       insertStmt.addBatch();
-                       count++;
-                   }
-                   insertStmt.executeBatch();
-                   instance.getLogger().info(getNumberSeparate(String.valueOf(count)) + " players transferred.");
-                   check2 = true;
-               } catch (SQLException e) {
-                   e.printStackTrace();
-                   check2 = false;
-               }
-            
+            try (HikariDataSource localDataSource = new HikariDataSource(localConfig);
+                 Connection localConn = localDataSource.getConnection();
+                 PreparedStatement selectStmt = localConn.prepareStatement("SELECT uuid_server, uuid_mojang, player_name, player_head, player_textures FROM scs_players");
+                 ResultSet rs = selectStmt.executeQuery();
+                 Connection remoteConn = instance.getDataSource().getConnection();
+                 PreparedStatement insertStmt = remoteConn.prepareStatement(
+                         "INSERT INTO scs_players (uuid_server, uuid_mojang, player_name, player_head, player_textures) VALUES (?, ?, ?, ?, ?)"
+                 )) {
+
+                int count = 0;
+                while (rs.next()) {
+                    insertStmt.setString(1, rs.getString("uuid_server"));
+                    insertStmt.setString(2, rs.getString("uuid_mojang"));
+                    insertStmt.setString(3, rs.getString("player_name"));
+                    insertStmt.setString(4, rs.getString("player_head"));
+                    insertStmt.setString(5, rs.getString("player_textures"));
+                    insertStmt.addBatch();
+                    count++;
+                }
+                insertStmt.executeBatch();
+                instance.getLogger().info(getNumberSeparate(String.valueOf(count)) + " players transferred.");
+                check2 = true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                check2 = false;
+            }
+
             if(check && check2) {
                 instance.getLogger().info("Safe reloading..");
                 instance.executeSync(() -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "scs reload"));
             }
-    	});
+        });
     }
-    
+
     /**
      * Serializes a set of chunks into a Base64 encoded string.
      *
@@ -1762,7 +1762,7 @@ public class ClaimMain {
      */
     private String serializeChunks(Set<Chunk> chunks) {
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream)) {
+             ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream)) {
             for (Chunk chunk : chunks) {
                 objectOutputStream.writeInt(chunk.getX());
                 objectOutputStream.writeInt(chunk.getZ());
@@ -1780,12 +1780,12 @@ public class ClaimMain {
      * Loads claims from the database.
      */
     public void loadClaims() {
-    	instance.info(" ");
-    	instance.info(net.md_5.bungee.api.ChatColor.DARK_GREEN + "Loading claims..");
-    	
-    	StringBuilder natural = new StringBuilder();
-    	StringBuilder visitors = new StringBuilder();
-    	StringBuilder members_ = new StringBuilder();
+        instance.info(" ");
+        instance.info(net.md_5.bungee.api.ChatColor.DARK_GREEN + "Loading claims..");
+
+        StringBuilder natural = new StringBuilder();
+        StringBuilder visitors = new StringBuilder();
+        StringBuilder members_ = new StringBuilder();
 
         for (String key : instance.getSettings().getDefaultValues().get("natural").keySet()) {
             if (instance.getSettings().getDefaultValues().get("natural").get(key)) {
@@ -1794,7 +1794,7 @@ public class ClaimMain {
             }
             natural.append("0");
         }
-        
+
         for (String key : instance.getSettings().getDefaultValues().get("visitors").keySet()) {
             if (instance.getSettings().getDefaultValues().get("visitors").get(key)) {
                 visitors.append("1");
@@ -1802,7 +1802,7 @@ public class ClaimMain {
             }
             visitors.append("0");
         }
-        
+
         for (String key : instance.getSettings().getDefaultValues().get("members").keySet()) {
             if (instance.getSettings().getDefaultValues().get("members").get(key)) {
                 members_.append("1");
@@ -1810,7 +1810,7 @@ public class ClaimMain {
             }
             members_.append("0");
         }
-        
+
         instance.getSettings().setDefaultValuesCode(natural.toString(),"natural");
         instance.getSettings().setDefaultValuesCode(visitors.toString(),"visitors");
         instance.getSettings().setDefaultValuesCode(members_.toString(),"members");
@@ -1821,7 +1821,7 @@ public class ClaimMain {
             String insertQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE id = ?";
             String updateQuery = "UPDATE scs_claims_1 SET members = ?, bans = ? WHERE id = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
-            	PreparedStatement preparedStatement2 = connection.prepareStatement(updateQuery);
+                PreparedStatement preparedStatement2 = connection.prepareStatement(updateQuery);
                 String getQuery = "SELECT * FROM scs_claims_1";
                 try (PreparedStatement stat = connection.prepareStatement(getQuery);
                      ResultSet resultSet = stat.executeQuery()) {
@@ -1830,14 +1830,14 @@ public class ClaimMain {
                     int batchCount2 = 0;
 
                     while (resultSet.next()) {
-                    	
-                    	// Get id 
-                    	int id = resultSet.getInt("id");
-                    	
+
+                        // Get id
+                        int id = resultSet.getInt("id");
+
                         // Check for update
                         boolean[] isToUpdate = {false};
-                    	
-                    	String[] parts;
+
+                        String[] parts;
                         // Members data
                         String s_members = resultSet.getString("members");
                         CustomSet<UUID> members = new CustomSet<>();
@@ -1871,46 +1871,46 @@ public class ClaimMain {
                                 bans.add(uuid);
                             }
                         }
-                        
+
                         if(isToUpdate[0]) {
-                        	String members_new = members.stream()
+                            String members_new = members.stream()
                                     .map(UUID::toString)
                                     .collect(Collectors.joining(";"));
-                        	preparedStatement2.setString(1, members_new);
-                        	String bans_new = bans.stream()
+                            preparedStatement2.setString(1, members_new);
+                            String bans_new = bans.stream()
                                     .map(UUID::toString)
                                     .collect(Collectors.joining(";"));
-                        	preparedStatement2.setString(2, bans_new);
-                        	preparedStatement2.setInt(3, id);
-                        	preparedStatement2.addBatch();
-                        	batchCount2++;
+                            preparedStatement2.setString(2, bans_new);
+                            preparedStatement2.setInt(3, id);
+                            preparedStatement2.addBatch();
+                            batchCount2++;
                         }
-                        
+
                         // Check permissions for update
                         String perms = resultSet.getString("permissions");
                         parts = perms.split(";");
                         if(parts.length != 3) continue;
-                        
+
                         // Set into map
                         Map<String,String> permList = new HashMap<>();
                         for(String s : parts) {
-                        	String[] parts2 = s.split(":");
-                        	if(parts2.length != 2) continue;
-                        	permList.put(parts2[0], parts2[1]);
+                            String[] parts2 = s.split(":");
+                            if(parts2.length != 2) continue;
+                            permList.put(parts2[0], parts2[1]);
                         }
-                        
+
                         StringBuilder final_perm = new StringBuilder();
-                        
+
                         for (Map.Entry<String, String> entry : permList.entrySet()) {
-                        	String key = entry.getKey();
-                        	String perm = entry.getValue();
-                        	
-                        	int defaultLength = instance.getSettings().getDefaultValuesCode(key).length();
-                        	
-                        	StringBuilder permCompleted = new StringBuilder(perm);
-                        	if (perm.length() != defaultLength) {
+                            String key = entry.getKey();
+                            String perm = entry.getValue();
+
+                            int defaultLength = instance.getSettings().getDefaultValuesCode(key).length();
+
+                            StringBuilder permCompleted = new StringBuilder(perm);
+                            if (perm.length() != defaultLength) {
                                 int diff = defaultLength - perm.length();
-                                
+
                                 if (diff < 0) {
                                     for (int i = 0; i < perm.length() - diff; i++) {
                                         if (perm.length() + i < defaultLength) {
@@ -1928,14 +1928,14 @@ public class ClaimMain {
                                         }
                                     }
                                 }
-                        	}
-                        	
-                        	if(final_perm.toString().isBlank()) {
-                        		final_perm.append(key+":"+permCompleted.toString());
-                        	} else {
-                        		final_perm.append(";"+key+":"+permCompleted.toString());
-                        	}
-                        	
+                            }
+
+                            if(final_perm.toString().isBlank()) {
+                                final_perm.append(key+":"+permCompleted.toString());
+                            } else {
+                                final_perm.append(";"+key+":"+permCompleted.toString());
+                            }
+
                         }
 
                         String permFinal = final_perm.toString();
@@ -1950,7 +1950,7 @@ public class ClaimMain {
                         preparedStatement2.executeBatch();
                         connection.commit(); // Commit transaction
                     }
-                    
+
                     if (batchCount > 0) {
                         preparedStatement.executeBatch();
                         connection.commit(); // Commit transaction
@@ -1990,8 +1990,8 @@ public class ClaimMain {
                         World check_world = Bukkit.getWorld(world_name);
                         World world = check_world == null ? Bukkit.createWorld(new WorldCreator(world_name)) : check_world;
                         if (world == null) {
-                        	instance.info("Error when loading world, id claim: " + String.valueOf(id));
-                        	continue;
+                            instance.info("Error when loading world, id claim: " + String.valueOf(id));
+                            continue;
                         }
 
                         // Location data
@@ -2013,7 +2013,7 @@ public class ClaimMain {
                                 try {
                                     uuid = UUID.fromString(m);
                                 } catch (IllegalArgumentException e) {
-                                	instance.info("Error when loading uuid, id claim: " + String.valueOf(id) + ", uuid: " + m);
+                                    instance.info("Error when loading uuid, id claim: " + String.valueOf(id) + ", uuid: " + m);
                                     continue;
                                 }
                                 members.add(uuid);
@@ -2030,7 +2030,7 @@ public class ClaimMain {
                                 try {
                                     uuid = UUID.fromString(m);
                                 } catch (IllegalArgumentException e) {
-                                	instance.info("Error when loading uuid, id claim: " + String.valueOf(id) + ", uuid: " + m);
+                                    instance.info("Error when loading uuid, id claim: " + String.valueOf(id) + ", uuid: " + m);
                                     continue;
                                 }
                                 bans.add(uuid);
@@ -2041,19 +2041,19 @@ public class ClaimMain {
                         Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>();
                         parts = permissions.split(";");
                         if(parts.length != 3) {
-                        	instance.info("Error when loading perms, id claim: " + String.valueOf(id));
-                        	continue;
+                            instance.info("Error when loading perms, id claim: " + String.valueOf(id));
+                            continue;
                         }
                         Map<String,String> permList = new HashMap<>();
                         for(String s : parts) {
-                        	String[] parts2 = s.split(":");
-                        	if(parts2.length != 2) continue;
-                        	permList.put(parts2[0], parts2[1]);
+                            String[] parts2 = s.split(":");
+                            if(parts2.length != 2) continue;
+                            permList.put(parts2[0], parts2[1]);
                         }
-                        
+
                         for (Map.Entry<String, String> entry : permList.entrySet()) {
-                        	String key = entry.getKey();
-                        	String perm = entry.getValue();
+                            String key = entry.getKey();
+                            String perm = entry.getValue();
                             int count_i = 0;
                             LinkedHashMap<String, Boolean> perm_value = new LinkedHashMap<>();
                             for (String perm_key : instance.getSettings().getDefaultValues().get(key).keySet()) {
@@ -2088,13 +2088,13 @@ public class ClaimMain {
                                     chunks.forEach(c -> Bukkit.getRegionScheduler().execute(instance, world, c.getX(), c.getZ(), () -> c.setForceLoaded(true)));
                                 } else {
                                     List<CompletableFuture<Void>> keepLoadedFutures = chunks.stream()
-                                        .map(chunk -> CompletableFuture.runAsync(() -> {
-                                            Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
-                                                chunk.setForceLoaded(true);
-                                                return null;
-                                            });
-                                        }))
-                                        .collect(Collectors.toList());
+                                            .map(chunk -> CompletableFuture.runAsync(() -> {
+                                                Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
+                                                    chunk.setForceLoaded(true);
+                                                    return null;
+                                                });
+                                            }))
+                                            .collect(Collectors.toList());
 
                                     CompletableFuture<Void> allKeptLoaded = CompletableFuture.allOf(keepLoadedFutures.toArray(new CompletableFuture[0]));
                                     allKeptLoaded.join();
@@ -2156,10 +2156,10 @@ public class ClaimMain {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-            
+
         } catch (SQLException e1) {
-			e1.printStackTrace();
-		}
+            e1.printStackTrace();
+        }
 
         instance.info(getNumberSeparate(String.valueOf(i[0]))+"/"+getNumberSeparate(String.valueOf(max_i))+" claims loaded.");
         instance.info("> including "+getNumberSeparate(String.valueOf(protected_areas_count))+" protected areas.");
@@ -2173,59 +2173,59 @@ public class ClaimMain {
      * @param chunk  the chunk to claim
      */
     public CompletableFuture<Boolean> createClaim(Player player, Chunk chunk) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-	    		// Get data
-		        String playerName = player.getName();
-		        UUID playerId = player.getUniqueId();
-		        CPlayer cPlayer = instance.getPlayerMain().getCPlayer(playerId);
-		
-		        // Update player claims count
-		        cPlayer.setClaimsCount(cPlayer.getClaimsCount() + 1);
-		
-		        // Create default values, name, loc, perms and Claim
-		        int id = findFreeId(playerId);
-		        String uuid = playerId.toString();
-		        String claimName = "claim-" + String.valueOf(id);
-		        String description = instance.getLanguage().getMessage("default-description");
-		        String locationString = getLocationString(player.getLocation());
-		        Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(instance.getSettings().getDefaultValues());
-		        Claim newClaim = new Claim(playerId, new CustomSet<>(Set.of(chunk)), playerName, new CustomSet<>(Set.of(playerId)), player.getLocation(), claimName, description, new HashMap<>(perms), false, 0, new CustomSet<>(),id);
-		
-		        // Add claim to claims list and player claims list
-		        listClaims.put(chunk, newClaim);
-		        playerClaims.computeIfAbsent(player.getUniqueId(), k -> new CustomSet<>()).add(newClaim);
-		        
-		        // Create bossbars and maps
-		        if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
-		        if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
-		        if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
-		        if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
-	            	if(instance.isFolia()) {
-	            		Bukkit.getRegionScheduler().execute(instance, chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> chunk.setForceLoaded(true));
-	            	} else {
-	            		Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
-	            			chunk.setForceLoaded(true);
-	            			return null;
-	            		});
-	            	}
-		        }
-		        instance.executeSync(() -> instance.getBossBars().activateBossBar(chunk));
-		        getMapAutoForChunks(Set.of(chunk));
+                // Get data
+                String playerName = player.getName();
+                UUID playerId = player.getUniqueId();
+                CPlayer cPlayer = instance.getPlayerMain().getCPlayer(playerId);
+
+                // Update player claims count
+                cPlayer.setClaimsCount(cPlayer.getClaimsCount() + 1);
+
+                // Create default values, name, loc, perms and Claim
+                int id = findFreeId(playerId);
+                String uuid = playerId.toString();
+                String claimName = "claim-" + String.valueOf(id);
+                String description = instance.getLanguage().getMessage("default-description");
+                String locationString = getLocationString(player.getLocation());
+                Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(instance.getSettings().getDefaultValues());
+                Claim newClaim = new Claim(playerId, new CustomSet<>(Set.of(chunk)), playerName, new CustomSet<>(Set.of(playerId)), player.getLocation(), claimName, description, new HashMap<>(perms), false, 0, new CustomSet<>(),id);
+
+                // Add claim to claims list and player claims list
+                listClaims.put(chunk, newClaim);
+                playerClaims.computeIfAbsent(player.getUniqueId(), k -> new CustomSet<>()).add(newClaim);
+
+                // Create bossbars and maps
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
+                    if(instance.isFolia()) {
+                        Bukkit.getRegionScheduler().execute(instance, chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> chunk.setForceLoaded(true));
+                    } else {
+                        Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
+                            chunk.setForceLoaded(true);
+                            return null;
+                        });
+                    }
+                }
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(chunk));
+                getMapAutoForChunks(Set.of(chunk));
                 updateWeatherChunk(newClaim);
                 updateFlyChunk(newClaim);
-                
+
                 // Call event
                 ClaimCreateEvent event = new ClaimCreateEvent(newClaim);
                 instance.executeSync(() -> Bukkit.getPluginManager().callEvent(event));
-		        
-		        // Update database
-		        return insertClaimIntoDatabase(id, uuid, playerName, claimName, description, chunk, locationString);
+
+                // Update database
+                return insertClaimIntoDatabase(id, uuid, playerName, claimName, description, chunk, locationString);
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
-    	});
+        });
     }
 
     /**
@@ -2263,53 +2263,53 @@ public class ClaimMain {
      * @param chunk  the chunk to claim
      */
     public CompletableFuture<Boolean> createAdminClaim(Player player, Chunk chunk) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-		        // Create default values, name, loc, perms and Claim
-		        String uuid = SERVER_UUID.toString();
-		        int id = findFreeIdProtectedArea();
-		        String claimName = "admin-" + String.valueOf(id);
-		        String description = instance.getLanguage().getMessage("default-description");
-		        String locationString = getLocationString(player.getLocation());
-		        Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(instance.getSettings().getDefaultValues());
-		        Claim newClaim = new Claim(SERVER_UUID, new CustomSet<>(Set.of(chunk)), "*", new CustomSet<>(), player.getLocation(), claimName, description, new HashMap<>(perms), false, 0, new CustomSet<>(),id);
-		
-		        // Add claim to claims list and protected areas list ("*" in playerClaims)
-		        listClaims.put(chunk, newClaim);
-		        playerClaims.computeIfAbsent(SERVER_UUID, k -> new CustomSet<>()).add(newClaim);
-		
-		        // Create bossbars and maps
-		        if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
-		        if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
-		        if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
-		        if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
-	            	if(instance.isFolia()) {
-	            		Bukkit.getRegionScheduler().execute(instance, chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> chunk.setForceLoaded(true));
-	            	} else {
-	            		Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
-	            			chunk.setForceLoaded(true);
-	            			return null;
-	            		});
-	            	}
-		        }
-		        instance.executeSync(() -> instance.getBossBars().activateBossBar(chunk));
-		        getMapAutoForChunks(Set.of(chunk));
+                // Create default values, name, loc, perms and Claim
+                String uuid = SERVER_UUID.toString();
+                int id = findFreeIdProtectedArea();
+                String claimName = "admin-" + String.valueOf(id);
+                String description = instance.getLanguage().getMessage("default-description");
+                String locationString = getLocationString(player.getLocation());
+                Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(instance.getSettings().getDefaultValues());
+                Claim newClaim = new Claim(SERVER_UUID, new CustomSet<>(Set.of(chunk)), "*", new CustomSet<>(), player.getLocation(), claimName, description, new HashMap<>(perms), false, 0, new CustomSet<>(),id);
+
+                // Add claim to claims list and protected areas list ("*" in playerClaims)
+                listClaims.put(chunk, newClaim);
+                playerClaims.computeIfAbsent(SERVER_UUID, k -> new CustomSet<>()).add(newClaim);
+
+                // Create bossbars and maps
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
+                    if(instance.isFolia()) {
+                        Bukkit.getRegionScheduler().execute(instance, chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> chunk.setForceLoaded(true));
+                    } else {
+                        Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
+                            chunk.setForceLoaded(true);
+                            return null;
+                        });
+                    }
+                }
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(chunk));
+                getMapAutoForChunks(Set.of(chunk));
                 updateWeatherChunk(newClaim);
                 updateFlyChunk(newClaim);
-                
+
                 // Call event
                 ClaimCreateEvent event = new ClaimCreateEvent(newClaim);
                 instance.executeSync(() -> Bukkit.getPluginManager().callEvent(event));
-		
-		        // Updata database
-		        return insertClaimIntoDatabase(id, uuid, "*", claimName, description, chunk, locationString);
+
+                // Updata database
+                return insertClaimIntoDatabase(id, uuid, "*", claimName, description, chunk, locationString);
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
-    	});
+        });
     }
-    
+
     /**
      * Inserts a new claim into the database.
      *
@@ -2326,8 +2326,8 @@ public class ClaimMain {
              PreparedStatement stmt = connection.prepareStatement(
                      "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
             stmt.setInt(1, id);
-        	stmt.setString(2, uuid);
-        	stmt.setString(3, owner);
+            stmt.setString(2, uuid);
+            stmt.setString(3, owner);
             stmt.setString(4, claimName);
             stmt.setString(5, description);
             stmt.setString(6, serializeChunks(Set.of(chunk)));
@@ -2353,81 +2353,81 @@ public class ClaimMain {
      * @return true if the claims were created successfully, false otherwise
      */
     public CompletableFuture<Boolean> createClaimRadius(Player player, CustomSet<Chunk> chunks, int radius) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-	            // Get data
-	            String playerName = player.getName();
-	            UUID playerId = player.getUniqueId();
-	            CPlayer cPlayer = instance.getPlayerMain().getCPlayer(playerId);
-	
-	            // Get uuid of the player
-	            String uuid = player.getUniqueId().toString();
-	
-	            // Create default values, name, loc, perms and Claim
-	            int id = findFreeId(playerId);
-	            String claimName = "claim-" + id;
-	            String description = instance.getLanguage().getMessage("default-description");
-	            String locationString = getLocationString(player.getLocation());
-	            Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(instance.getSettings().getDefaultValues());
-	            Claim newClaim = new Claim(playerId, new CustomSet<>(chunks), playerName, new CustomSet<>(Set.of(playerId)), player.getLocation(), claimName, description, new HashMap<>(perms), false, 0, new CustomSet<>(), id);
-	
-	            // Add the claim to claims list of the player
-	            playerClaims.computeIfAbsent(player.getUniqueId(), k -> new CustomSet<>()).add(newClaim);
-	
-	            // Update their claims count
-	            cPlayer.setClaimsCount(cPlayer.getClaimsCount() + 1);
-	
-	            // Create bossbars, maps
-	            List<Integer> X = Collections.synchronizedList(new ArrayList<>());
-	            List<Integer> Z = Collections.synchronizedList(new ArrayList<>());
-	            instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
-	            chunks.forEach(c -> {
-	                listClaims.put(c, newClaim);
-	                X.add(c.getX());
-	                Z.add(c.getZ());
-	            });
-	            if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
-	            if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
-	            if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
-	            if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
-	            	if(instance.isFolia()) {
-	            		chunks.stream().forEach(c -> Bukkit.getRegionScheduler().execute(instance, c.getWorld(), c.getX(), c.getZ(), () -> c.setForceLoaded(true)));
-	            	} else {
-	            		Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
-	            			instance.executeSync(() -> chunks.stream().forEach(c -> c.setForceLoaded(true)));
-	            			return null;
-	            		});
-	            	}
-	            }
-	            getMapAutoForChunks(chunks);
+                // Get data
+                String playerName = player.getName();
+                UUID playerId = player.getUniqueId();
+                CPlayer cPlayer = instance.getPlayerMain().getCPlayer(playerId);
+
+                // Get uuid of the player
+                String uuid = player.getUniqueId().toString();
+
+                // Create default values, name, loc, perms and Claim
+                int id = findFreeId(playerId);
+                String claimName = "claim-" + id;
+                String description = instance.getLanguage().getMessage("default-description");
+                String locationString = getLocationString(player.getLocation());
+                Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(instance.getSettings().getDefaultValues());
+                Claim newClaim = new Claim(playerId, new CustomSet<>(chunks), playerName, new CustomSet<>(Set.of(playerId)), player.getLocation(), claimName, description, new HashMap<>(perms), false, 0, new CustomSet<>(), id);
+
+                // Add the claim to claims list of the player
+                playerClaims.computeIfAbsent(player.getUniqueId(), k -> new CustomSet<>()).add(newClaim);
+
+                // Update their claims count
+                cPlayer.setClaimsCount(cPlayer.getClaimsCount() + 1);
+
+                // Create bossbars, maps
+                List<Integer> X = Collections.synchronizedList(new ArrayList<>());
+                List<Integer> Z = Collections.synchronizedList(new ArrayList<>());
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                chunks.forEach(c -> {
+                    listClaims.put(c, newClaim);
+                    X.add(c.getX());
+                    Z.add(c.getZ());
+                });
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
+                    if(instance.isFolia()) {
+                        chunks.stream().forEach(c -> Bukkit.getRegionScheduler().execute(instance, c.getWorld(), c.getX(), c.getZ(), () -> c.setForceLoaded(true)));
+                    } else {
+                        Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
+                            instance.executeSync(() -> chunks.stream().forEach(c -> c.setForceLoaded(true)));
+                            return null;
+                        });
+                    }
+                }
+                getMapAutoForChunks(chunks);
                 updateWeatherChunk(newClaim);
                 updateFlyChunk(newClaim);
-                
+
                 // Call event
                 ClaimCreateEvent event = new ClaimCreateEvent(newClaim);
                 instance.executeSync(() -> Bukkit.getPluginManager().callEvent(event));
-	
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection();
-	                 PreparedStatement stmt = connection.prepareStatement(
-	                         "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-	                stmt.setInt(1, id);
-	                stmt.setString(2, uuid);
-	                stmt.setString(3, playerName);
-	                stmt.setString(4, claimName);
-	                stmt.setString(5, description);
-	                stmt.setString(6, serializeChunks(chunks));
-	                stmt.setString(7, player.getWorld().getName());
-	                stmt.setString(8, locationString);
-	                stmt.setString(9, uuid);
-	                stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
-	                stmt.setString(11, "");
-	                stmt.executeUpdate();
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection();
+                     PreparedStatement stmt = connection.prepareStatement(
+                             "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                    stmt.setInt(1, id);
+                    stmt.setString(2, uuid);
+                    stmt.setString(3, playerName);
+                    stmt.setString(4, claimName);
+                    stmt.setString(5, description);
+                    stmt.setString(6, serializeChunks(chunks));
+                    stmt.setString(7, player.getWorld().getName());
+                    stmt.setString(8, locationString);
+                    stmt.setString(9, uuid);
+                    stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
+                    stmt.setString(11, "");
+                    stmt.executeUpdate();
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -2444,73 +2444,73 @@ public class ClaimMain {
      * @return true if the claims were created successfully, false otherwise
      */
     public CompletableFuture<Boolean> createAdminClaimRadius(Player player, CustomSet<Chunk> chunks, int radius) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-	    		// Get data
-		        String playerName = "*";
-		        
-		        // Create default values, name, loc, perms and Claim
-		        int id = findFreeIdProtectedArea();
-		        String claimName = "admin-" + String.valueOf(id);
-		        String description = instance.getLanguage().getMessage("default-description");
-		        String locationString = getLocationString(player.getLocation());
-		        Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(instance.getSettings().getDefaultValues());
-		        Claim newClaim = new Claim(SERVER_UUID, new CustomSet<>(chunks), playerName, new CustomSet<>(), player.getLocation(), claimName, description, new HashMap<>(perms), false, 0, new CustomSet<>(),id);
-		
-		        // Add the claim to protected areas list
-		        playerClaims.computeIfAbsent(SERVER_UUID, k -> new CustomSet<>()).add(newClaim);
-		        
-		        // Create bossbars, maps
-		        List<Integer> X = Collections.synchronizedList(new ArrayList<>());
-		        List<Integer> Z = Collections.synchronizedList(new ArrayList<>());
-		        instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
-		        chunks.stream().forEach(c -> {
-		            listClaims.put(c, newClaim);
-		            X.add(c.getX());
-		            Z.add(c.getZ());
-		        });
-	            if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
-	            if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
-	            if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
-	            if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
-	            	if(instance.isFolia()) {
-	            		chunks.stream().forEach(c -> Bukkit.getRegionScheduler().execute(instance, c.getWorld(), c.getX(), c.getZ(), () -> c.setForceLoaded(true)));
-	            	} else {
-	            		Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
-	            			instance.executeSync(() -> chunks.stream().forEach(c -> c.setForceLoaded(true)));
-	            			return null;
-	            		});
-	            	}
-	            }
-	            getMapAutoForChunks(chunks);
+                // Get data
+                String playerName = "*";
+
+                // Create default values, name, loc, perms and Claim
+                int id = findFreeIdProtectedArea();
+                String claimName = "admin-" + String.valueOf(id);
+                String description = instance.getLanguage().getMessage("default-description");
+                String locationString = getLocationString(player.getLocation());
+                Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(instance.getSettings().getDefaultValues());
+                Claim newClaim = new Claim(SERVER_UUID, new CustomSet<>(chunks), playerName, new CustomSet<>(), player.getLocation(), claimName, description, new HashMap<>(perms), false, 0, new CustomSet<>(),id);
+
+                // Add the claim to protected areas list
+                playerClaims.computeIfAbsent(SERVER_UUID, k -> new CustomSet<>()).add(newClaim);
+
+                // Create bossbars, maps
+                List<Integer> X = Collections.synchronizedList(new ArrayList<>());
+                List<Integer> Z = Collections.synchronizedList(new ArrayList<>());
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                chunks.stream().forEach(c -> {
+                    listClaims.put(c, newClaim);
+                    X.add(c.getX());
+                    Z.add(c.getZ());
+                });
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
+                if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
+                    if(instance.isFolia()) {
+                        chunks.stream().forEach(c -> Bukkit.getRegionScheduler().execute(instance, c.getWorld(), c.getX(), c.getZ(), () -> c.setForceLoaded(true)));
+                    } else {
+                        Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
+                            instance.executeSync(() -> chunks.stream().forEach(c -> c.setForceLoaded(true)));
+                            return null;
+                        });
+                    }
+                }
+                getMapAutoForChunks(chunks);
                 updateWeatherChunk(newClaim);
                 updateFlyChunk(newClaim);
-                
+
                 // Call event
                 ClaimCreateEvent event = new ClaimCreateEvent(newClaim);
                 instance.executeSync(() -> Bukkit.getPluginManager().callEvent(event));
-		        
-		        // Update database
-	            try (Connection connection = instance.getDataSource().getConnection();
-	                    PreparedStatement stmt = connection.prepareStatement(
-	                    		"INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-	                   stmt.setInt(1, id);
-	            	   stmt.setString(2, SERVER_UUID.toString());
-	            	   stmt.setString(3, "*");
-	                   stmt.setString(4, claimName);
-	                   stmt.setString(5, description);
-	                   stmt.setString(6, serializeChunks(chunks));
-	                   stmt.setString(7, player.getWorld().getName());
-	                   stmt.setString(8, locationString);
-	                   stmt.setString(9, "");
-	                   stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
-	                   stmt.setString(11, "");
-	                   stmt.executeUpdate();
-	                   return true;
-	               } catch (SQLException e) {
-	                   e.printStackTrace();
-	                   return false;
-	               }
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection();
+                     PreparedStatement stmt = connection.prepareStatement(
+                             "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                    stmt.setInt(1, id);
+                    stmt.setString(2, SERVER_UUID.toString());
+                    stmt.setString(3, "*");
+                    stmt.setString(4, claimName);
+                    stmt.setString(5, description);
+                    stmt.setString(6, serializeChunks(chunks));
+                    stmt.setString(7, player.getWorld().getName());
+                    stmt.setString(8, locationString);
+                    stmt.setString(9, "");
+                    stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
+                    stmt.setString(11, "");
+                    stmt.executeUpdate();
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -2541,7 +2541,7 @@ public class ClaimMain {
     public boolean checkIfClaimExists(Chunk chunk) {
         return listClaims.containsKey(chunk);
     }
-    
+
     /**
      * Checks if a claim exists.
      *
@@ -2563,7 +2563,7 @@ public class ClaimMain {
         Claim claim = listClaims.get(chunk);
         return claim != null && claim.getPermission(perm, role == null ? "natural" : role.toLowerCase());
     }
-    
+
     /**
      * Gets the owner of a claim by the chunk.
      *
@@ -2583,7 +2583,7 @@ public class ClaimMain {
      * @return true if the player is a member of the claim, false otherwise
      */
     public boolean checkMembre(Claim claim, Player player) {
-    	return claim == null ? false : claim.getMembers().contains(player.getUniqueId());
+        return claim == null ? false : claim.getMembers().contains(player.getUniqueId());
     }
 
     /**
@@ -2598,7 +2598,7 @@ public class ClaimMain {
                 .map(member -> instance.getPlayerMain().getPlayerName(member))
                 .anyMatch(playerName -> playerName != null && playerName.equalsIgnoreCase(targetName));
     }
-    
+
     /**
      * Checks if a player is banned from a claim.
      *
@@ -2607,7 +2607,7 @@ public class ClaimMain {
      * @return true if the player is banned from the claim, false otherwise
      */
     public boolean checkBan(Claim claim, Player player) {
-    	return claim == null ? false : claim.getBans().contains(player.getUniqueId());
+        return claim == null ? false : claim.getBans().contains(player.getUniqueId());
     }
 
     /**
@@ -2619,8 +2619,8 @@ public class ClaimMain {
      */
     public boolean checkBan(Claim claim, String targetName) {
         return claim != null && claim.getBans().stream()
-            .map(ban -> instance.getPlayerMain().getPlayerName(ban))
-            .anyMatch(playerName -> playerName != null && playerName.equalsIgnoreCase(targetName));
+                .map(ban -> instance.getPlayerMain().getPlayerName(ban))
+                .anyMatch(playerName -> playerName != null && playerName.equalsIgnoreCase(targetName));
     }
 
     /**
@@ -2673,7 +2673,7 @@ public class ClaimMain {
         }
         return "";
     }
-    
+
     /**
      * Converts a set of UUIDs to a single string where each UUID is separated by a semicolon.
      *
@@ -2688,7 +2688,7 @@ public class ClaimMain {
         }
         return "";
     }
-    
+
     /**
      * Updates a claim's permissions.
      *
@@ -2699,7 +2699,7 @@ public class ClaimMain {
     public CompletableFuture<Boolean> updatePermsBedrock(Claim claim, Map<String, LinkedHashMap<String, Boolean>> permissionsMap) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	// Get the owner's name
+                // Get the owner's name
                 String owner = claim.getOwner();
 
                 // Updates perms
@@ -2758,15 +2758,15 @@ public class ClaimMain {
             try {
                 // Get the owner's name
                 String owner = claim.getOwner();
-                
+
                 // Get the current permissions map for the specified role
                 String roleKey = (role == null ? "natural" : role.toLowerCase());
                 LinkedHashMap<String, Boolean> currentPermissions = claim.getPermissions().get(roleKey);
-                
+
                 // Clone the current permissions map to avoid affecting other claims
                 LinkedHashMap<String, Boolean> newPermissions = new LinkedHashMap<>(currentPermissions);
                 newPermissions.put(permission, value);
-                
+
                 // Update the permissions map in the claim with the cloned and updated map
                 claim.getPermissions().put(roleKey, newPermissions);
 
@@ -2774,17 +2774,17 @@ public class ClaimMain {
                 if (permission.equals("Weather")) updateWeatherChunk(claim);
                 // Check if permission is Fly, then update fly for players in the chunks
                 if (permission.equals("Fly")) updateFlyChunk(claim);
-                
+
                 // Get the UUID of the owner
                 String uuid = owner.equals("*") ? SERVER_UUID.toString() : instance.getPlayerMain().getPlayerUUID(owner).toString();
-        
+
                 // Build the perms string
                 String permissions = claim.getPermissions().entrySet().stream()
                         .map(entry -> entry.getKey() + ":" + entry.getValue().entrySet().stream()
                                 .map(subEntry -> subEntry.getValue() ? "1" : "0")
                                 .collect(Collectors.joining()))
                         .collect(Collectors.joining(";"));
-                
+
                 // Update the database
                 String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid = ? AND claim_name = ?";
                 try (Connection connection = instance.getDataSource().getConnection();
@@ -2804,7 +2804,7 @@ public class ClaimMain {
             }
         });
     }
-    
+
     /**
      * Method to apply current settings to all owner's claims.
      *
@@ -2813,41 +2813,41 @@ public class ClaimMain {
      * @return true if the operation was successful, false otherwise
      */
     public CompletableFuture<Boolean> applyAllSettings(Claim claim) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-            	// Get data
-            	UUID uuid = claim.getUUID();
-            	
-	        	// Update perms
-	            Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(claim.getPermissions());
-	            
-	            // Update settings
-	            playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(c -> {
-	            	c.setPermissions(new HashMap<>(perms));
-	                updateWeatherChunk(c);
-	                updateFlyChunk(c);
-	            });
-	        	
-	        	// Build the perms string
-		        String permissions = perms.entrySet().stream()
-		                .map(entry -> entry.getKey() + ":" + entry.getValue().entrySet().stream()
-		                        .map(subEntry -> subEntry.getValue() ? "1" : "0")
-		                        .collect(Collectors.joining()))
-		                .collect(Collectors.joining(";"));
-	            
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, permissions);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get data
+                UUID uuid = claim.getUUID();
+
+                // Update perms
+                Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(claim.getPermissions());
+
+                // Update settings
+                playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(c -> {
+                    c.setPermissions(new HashMap<>(perms));
+                    updateWeatherChunk(c);
+                    updateFlyChunk(c);
+                });
+
+                // Build the perms string
+                String permissions = perms.entrySet().stream()
+                        .map(entry -> entry.getKey() + ":" + entry.getValue().entrySet().stream()
+                                .map(subEntry -> subEntry.getValue() ? "1" : "0")
+                                .collect(Collectors.joining()))
+                        .collect(Collectors.joining(";"));
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, permissions);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -2863,34 +2863,34 @@ public class ClaimMain {
      * @return true if the operation was successful, false otherwise
      */
     public CompletableFuture<Boolean> addClaimBan(Claim claim, String name) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-	        	// Get data
-	        	String claimName = claim.getName();
-	        	UUID uuid = claim.getUUID();
-	        	
-	        	// Add banned and remove member
-	        	UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
-	        	claim.addBan(targetUUID);
-	        	claim.removeMember(targetUUID);
-		        
-		        // Update database
-		        String banString = getBanString(claim);
-		        String memberString = getMemberString(claim);
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET bans = ?, members = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, banString);
-	                    preparedStatement.setString(2, memberString);
-	                    preparedStatement.setString(3, uuid.toString());
-	                    preparedStatement.setString(4, claimName);
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get data
+                String claimName = claim.getName();
+                UUID uuid = claim.getUUID();
+
+                // Add banned and remove member
+                UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
+                claim.addBan(targetUUID);
+                claim.removeMember(targetUUID);
+
+                // Update database
+                String banString = getBanString(claim);
+                String memberString = getMemberString(claim);
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET bans = ?, members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, banString);
+                        preparedStatement.setString(2, memberString);
+                        preparedStatement.setString(3, uuid.toString());
+                        preparedStatement.setString(4, claimName);
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -2906,31 +2906,31 @@ public class ClaimMain {
      * @return true if the operation was successful, false otherwise
      */
     public CompletableFuture<Boolean> removeClaimBan(Claim claim, String name) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-	        	// Get data
-	        	String claimName = claim.getName();
-	        	UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
-	        	UUID uuid = claim.getUUID();
-	        	
-	        	// Remove banned
-	            claim.removeBan(targetUUID);
-	            
-	            // Update database
-	            String banString = getBanString(claim);
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET bans = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, banString);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, claimName);
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get data
+                String claimName = claim.getName();
+                UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
+                UUID uuid = claim.getUUID();
+
+                // Remove banned
+                claim.removeBan(targetUUID);
+
+                // Update database
+                String banString = getBanString(claim);
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET bans = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, banString);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claimName);
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -2946,38 +2946,38 @@ public class ClaimMain {
      * @return true if the operation was successful, false otherwise
      */
     public CompletableFuture<Boolean> addAllClaimBan(String owner, String name) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-            	
-	            // Get uuid of the owner and target
-            	UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
-            	String uuid_string = uuid.toString();
-	            UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
-	            
-	            // Add banned and remove member
-	            playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(claim -> {
-	            	claim.addBan(targetUUID);
-	            	claim.removeMember(targetUUID);
-	            });
-	
-		        // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET bans = ?, members = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
-	                        preparedStatement.setString(1, getBanString(claim));
-	                        preparedStatement.setString(2, getMemberString(claim));
-	                        preparedStatement.setString(3, uuid_string);
-	                        preparedStatement.setString(4, claim.getName());
-	                        preparedStatement.addBatch();
-	                    }
-	                    preparedStatement.executeBatch();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                // Get uuid of the owner and target
+                UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
+                String uuid_string = uuid.toString();
+                UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
+
+                // Add banned and remove member
+                playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(claim -> {
+                    claim.addBan(targetUUID);
+                    claim.removeMember(targetUUID);
+                });
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET bans = ?, members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
+                            preparedStatement.setString(1, getBanString(claim));
+                            preparedStatement.setString(2, getMemberString(claim));
+                            preparedStatement.setString(3, uuid_string);
+                            preparedStatement.setString(4, claim.getName());
+                            preparedStatement.addBatch();
+                        }
+                        preparedStatement.executeBatch();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -2993,40 +2993,40 @@ public class ClaimMain {
      * @return true if the operation was successful, false otherwise
      */
     public CompletableFuture<Boolean> removeAllClaimBan(String owner, String name) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-            	
-	            // Get uuid of the owner and target
-            	UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
-            	String uuid_string = uuid.toString();
-	            UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
 
-		        playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(claim -> claim.removeBan(targetUUID));
-	            
-	            // Updata database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET bans = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                	for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
-	                        preparedStatement.setString(1, getBanString(claim));
-	                        preparedStatement.setString(2, uuid_string);
-	                        preparedStatement.setString(3, claim.getName());
-	                        preparedStatement.addBatch();
-	                    }
-	                    preparedStatement.executeBatch();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get uuid of the owner and target
+                UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
+                String uuid_string = uuid.toString();
+                UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
+
+                playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(claim -> claim.removeBan(targetUUID));
+
+                // Updata database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET bans = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
+                            preparedStatement.setString(1, getBanString(claim));
+                            preparedStatement.setString(2, uuid_string);
+                            preparedStatement.setString(3, claim.getName());
+                            preparedStatement.addBatch();
+                        }
+                        preparedStatement.executeBatch();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Method to add a member to a claim.
      *
@@ -3035,38 +3035,38 @@ public class ClaimMain {
      * @return true if the operation was successful, false otherwise
      */
     public CompletableFuture<Boolean> addClaimMember(Claim claim, String name) {
-    	return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try {
-            	
-            	// Get data
-            	UUID uuid = claim.getUUID();
-            	UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
-            	
-	        	// Add member
-	            claim.addMember(targetUUID);
-	            
-	            // Update database
-	            String membersString = getMemberString(claim);
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET members = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, membersString);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	            return false;
-	        }
+
+                // Get data
+                UUID uuid = claim.getUUID();
+                UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
+
+                // Add member
+                claim.addMember(targetUUID);
+
+                // Update database
+                String membersString = getMemberString(claim);
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, membersString);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
         });
     }
-    
+
     /**
      * Method to add a member to all owner's claims.
      *
@@ -3077,39 +3077,39 @@ public class ClaimMain {
     public CompletableFuture<Boolean> addAllClaimsMember(String owner, String name) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-	            
-	            // Get uuid of the owner and target
-            	UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
-            	String uuid_string = uuid.toString();
-	            UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
-	            
-	            // Remove member
-		        playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(claim -> claim.addMember(targetUUID));
-	
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET members = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                	for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
-	                        preparedStatement.setString(1, getMemberString(claim));
-	                        preparedStatement.setString(2, uuid_string);
-	                        preparedStatement.setString(3, claim.getName());
-	                        preparedStatement.addBatch();
-	                    }
-	                    preparedStatement.executeBatch();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                // Get uuid of the owner and target
+                UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
+                String uuid_string = uuid.toString();
+                UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
+
+                // Remove member
+                playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(claim -> claim.addMember(targetUUID));
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
+                            preparedStatement.setString(1, getMemberString(claim));
+                            preparedStatement.setString(2, uuid_string);
+                            preparedStatement.setString(3, claim.getName());
+                            preparedStatement.addBatch();
+                        }
+                        preparedStatement.executeBatch();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Method to remove a member from a claim.
      *
@@ -3120,28 +3120,28 @@ public class ClaimMain {
     public CompletableFuture<Boolean> removeClaimMember(Claim claim, String name) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	// Get data
-            	UUID uuid = claim.getUUID();
-            	UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
-            	
-	        	// Add member
-	            claim.removeMember(targetUUID);
-	            
-	            // Update database
-	            String membersString = getMemberString(claim);
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, membersString);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get data
+                UUID uuid = claim.getUUID();
+                UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
+
+                // Add member
+                claim.removeMember(targetUUID);
+
+                // Update database
+                String membersString = getMemberString(claim);
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, membersString);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -3160,29 +3160,29 @@ public class ClaimMain {
         return CompletableFuture.supplyAsync(() -> {
             try {
 
-	            // Get uuid of the owner and target
-            	UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
-            	String uuid_string = uuid.toString();
-	            UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
-	            playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(claim -> claim.removeMember(targetUUID));
-	            
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                	for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
-	                        preparedStatement.setString(1, getMemberString(claim));
-	                        preparedStatement.setString(2, uuid_string);
-	                        preparedStatement.setString(3, claim.getName());
-	                        preparedStatement.addBatch();
-	                    }
-	                    preparedStatement.executeBatch();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get uuid of the owner and target
+                UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
+                String uuid_string = uuid.toString();
+                UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
+                playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(claim -> claim.removeMember(targetUUID));
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
+                            preparedStatement.setString(1, getMemberString(claim));
+                            preparedStatement.setString(2, uuid_string);
+                            preparedStatement.setString(3, claim.getName());
+                            preparedStatement.addBatch();
+                        }
+                        preparedStatement.executeBatch();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -3200,34 +3200,34 @@ public class ClaimMain {
     public CompletableFuture<Boolean> setClaimName(Claim claim, String name) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	
-	        	// Get data and update name
-            	UUID uuid = claim.getUUID();
-	            String old_name = claim.getName();
-	            claim.setName(name);
-	            
-	            // Update name on bossbars and maps
-	        	Set<Chunk> chunks = claim.getChunks();
-	            instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
-	            getMapAutoForChunks(chunks);
-	        	if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
-	        	if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
-	        	if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
-	        	
-	        	// Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET claim_name = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, name);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, old_name);
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                // Get data and update name
+                UUID uuid = claim.getUUID();
+                String old_name = claim.getName();
+                claim.setName(name);
+
+                // Update name on bossbars and maps
+                Set<Chunk> chunks = claim.getChunks();
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                getMapAutoForChunks(chunks);
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET claim_name = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, name);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, old_name);
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -3245,26 +3245,26 @@ public class ClaimMain {
     public CompletableFuture<Boolean> setClaimLocation(Claim claim, Location loc) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	
-	        	// Get data and update loc
-            	UUID uuid = claim.getUUID();
-	        	claim.setLocation(loc);
-	        	
-	        	// Update database
-	            String loc_string = String.valueOf(loc.getX()) + ";" + String.valueOf(loc.getY()) + ";" + String.valueOf(loc.getZ()) + ";" + String.valueOf(loc.getYaw()) + ";" + String.valueOf(loc.getPitch());
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET Location = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, loc_string);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                // Get data and update loc
+                UUID uuid = claim.getUUID();
+                claim.setLocation(loc);
+
+                // Update database
+                String loc_string = String.valueOf(loc.getX()) + ";" + String.valueOf(loc.getY()) + ";" + String.valueOf(loc.getZ()) + ";" + String.valueOf(loc.getYaw()) + ";" + String.valueOf(loc.getPitch());
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET Location = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, loc_string);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -3281,51 +3281,51 @@ public class ClaimMain {
     public CompletableFuture<Boolean> deleteClaim(Claim claim) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	
-	        	// Get data
-            	UUID uuid = claim.getUUID();
-	            
-	        	// Delete all chunks and deactivate bossbars
-	        	Set<Chunk> chunks = claim.getChunks();
-	        	instance.executeSync(() -> instance.getBossBars().deactivateBossBar(chunks));
-	        	if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().deleteMarker(chunks);
-	        	if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().deleteMarker(chunks);
-	        	if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().deleteMarker(chunks);
-	        	chunks.stream().forEach(c -> listClaims.remove(c));
+
+                // Get data
+                UUID uuid = claim.getUUID();
+
+                // Delete all chunks and deactivate bossbars
+                Set<Chunk> chunks = claim.getChunks();
+                instance.executeSync(() -> instance.getBossBars().deactivateBossBar(chunks));
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().deleteMarker(chunks);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().deleteMarker(chunks);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().deleteMarker(chunks);
+                chunks.stream().forEach(c -> listClaims.remove(c));
                 resetWeatherChunk(claim);
                 resetFlyChunk(claim);
                 getMapAutoForChunks(chunks);
-	            
-	            // Update player's claims count if its not a protected area
+
+                // Update player's claims count if its not a protected area
                 if(!claim.getOwner().equals("*")) {
-	            	Player player = Bukkit.getPlayer(uuid);
-		            if (player != null && player.isOnline()) {
-	    	            CPlayer cPlayer = instance.getPlayerMain().getCPlayer(uuid);
-	    	            cPlayer.setClaimsCount(cPlayer.getClaimsCount() - 1);
-		            }
+                    Player player = Bukkit.getPlayer(uuid);
+                    if (player != null && player.isOnline()) {
+                        CPlayer cPlayer = instance.getPlayerMain().getCPlayer(uuid);
+                        cPlayer.setClaimsCount(cPlayer.getClaimsCount() - 1);
+                    }
                 }
-            
-	        	// Remove claim from owner's claims list
-	            playerClaims.get(uuid).remove(claim);
-	            if (playerClaims.get(uuid).isEmpty()) playerClaims.remove(uuid);
-	            
-	            // Call event
+
+                // Remove claim from owner's claims list
+                playerClaims.get(uuid).remove(claim);
+                if (playerClaims.get(uuid).isEmpty()) playerClaims.remove(uuid);
+
+                // Call event
                 UnclaimEvent event = new UnclaimEvent(claim);
                 instance.executeSync(() -> Bukkit.getPluginManager().callEvent(event));
-	            
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String deleteQuery = "DELETE FROM scs_claims_1 WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
-	                    preparedStatement.setString(1, uuid.toString());
-	                    preparedStatement.setString(2, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String deleteQuery = "DELETE FROM scs_claims_1 WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
+                        preparedStatement.setString(1, uuid.toString());
+                        preparedStatement.setString(2, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -3342,19 +3342,19 @@ public class ClaimMain {
     public CompletableFuture<Boolean> deleteAllClaims(String owner) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                
-	            // Get uuid of the owner and update owner claims count
-            	UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
-	            if(!owner.equals("*")) {
-	            	Player player = Bukkit.getPlayer(owner);
-		            if (player != null && player.isOnline()) {
-			            CPlayer cPlayer = instance.getPlayerMain().getCPlayer(player.getUniqueId());
-			            cPlayer.setClaimsCount(0);
-		            }
-	            }
+
+                // Get uuid of the owner and update owner claims count
+                UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
+                if(!owner.equals("*")) {
+                    Player player = Bukkit.getPlayer(owner);
+                    if (player != null && player.isOnline()) {
+                        CPlayer cPlayer = instance.getPlayerMain().getCPlayer(player.getUniqueId());
+                        cPlayer.setClaimsCount(0);
+                    }
+                }
 
                 // Delete all claims of target player, and remove him from data
-	            CustomSet<Claim> claims = playerClaims.getOrDefault(uuid, new CustomSet<>());
+                CustomSet<Claim> claims = playerClaims.getOrDefault(uuid, new CustomSet<>());
                 playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(claim -> {
                     Set<Chunk> chunks = claim.getChunks();
                     instance.executeSync(() -> instance.getBossBars().deactivateBossBar(chunks));
@@ -3367,8 +3367,8 @@ public class ClaimMain {
                     getMapAutoForChunks(chunks);
                 });
                 playerClaims.remove(uuid);
-                
-	            // Call event
+
+                // Call event
                 UnclaimallEvent event = new UnclaimallEvent(claims);
                 instance.executeSync(() -> Bukkit.getPluginManager().callEvent(event));
 
@@ -3402,26 +3402,26 @@ public class ClaimMain {
     public CompletableFuture<Boolean> setClaimDescription(Claim claim, String description) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	// Get data
-            	UUID uuid = claim.getUUID();
-            	
-            	// Update description
-	        	claim.setDescription(description);
-	        	
-	        	// Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET claim_description = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, description);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get data
+                UUID uuid = claim.getUUID();
+
+                // Update description
+                claim.setDescription(description);
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET claim_description = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, description);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -3439,27 +3439,27 @@ public class ClaimMain {
     public CompletableFuture<Boolean> setChunkSale(Claim claim, long price) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	// Get data
-            	UUID uuid = claim.getUUID();
-            	
-            	// Update sale and price
-	            claim.setSale(true);
-	            claim.setPrice(price);
-	            
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET for_sale = true, sale_price = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, String.valueOf(price));
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get data
+                UUID uuid = claim.getUUID();
+
+                // Update sale and price
+                claim.setSale(true);
+                claim.setPrice(price);
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET for_sale = true, sale_price = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, String.valueOf(price));
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -3476,78 +3476,78 @@ public class ClaimMain {
     public CompletableFuture<Boolean> delChunkSale(Claim claim) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	// Get data
-            	UUID uuid = claim.getUUID();
-            	
-            	// Update sale and price
-	            claim.setSale(false);
-	            claim.setPrice(0);
-	            
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, uuid.toString());
-	                    preparedStatement.setString(2, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get data
+                UUID uuid = claim.getUUID();
+
+                // Update sale and price
+                claim.setSale(false);
+                claim.setPrice(0);
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, uuid.toString());
+                        preparedStatement.setString(2, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Method to reset settings of player's claims
-     * 
+     *
      * @param owner The target owner
      * @return true if the operation was successful, false otherwise
      */
     public CompletableFuture<Boolean> resetAllOwnerClaimsSettings(String owner) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	// Get data
-	        	String defaultValue = instance.getSettings().getDefaultValuesCode("all");
-	        	Map<String,LinkedHashMap<String,Boolean>> perm = new HashMap<>(instance.getSettings().getDefaultValues());
-	            
-	            // Get uuid of the owner
-	        	UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
+                // Get data
+                String defaultValue = instance.getSettings().getDefaultValuesCode("all");
+                Map<String,LinkedHashMap<String,Boolean>> perm = new HashMap<>(instance.getSettings().getDefaultValues());
 
-	        	// Update perms
-	            playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(c -> {
-	            	c.setPermissions(new HashMap<>(perm));
-	                updateWeatherChunk(c);
-	                updateFlyChunk(c);
-	            });
-	            
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, defaultValue);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get uuid of the owner
+                UUID uuid = owner.equals("*") ? SERVER_UUID : instance.getPlayerMain().getPlayerUUID(owner);
+
+                // Update perms
+                playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).stream().forEach(c -> {
+                    c.setPermissions(new HashMap<>(perm));
+                    updateWeatherChunk(c);
+                    updateFlyChunk(c);
+                });
+
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, defaultValue);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Method to reset settings of claim
-     * 
+     *
      * @param claim The target claim
      * @param owner The target owner
      * @return true if the operation was successful, false otherwise
@@ -3555,69 +3555,69 @@ public class ClaimMain {
     public CompletableFuture<Boolean> resetClaimSettings(Claim claim) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	
-            	// Get data
-            	UUID uuid = claim.getUUID();
-	        	String defaultValue = instance.getSettings().getDefaultValuesCode("all");
-	        	Map<String,LinkedHashMap<String,Boolean>> perm = new HashMap<>(instance.getSettings().getDefaultValues());
-	        	
-	        	// Update perms
-	            claim.setPermissions(perm);
-	            
-	            // Update weather and fly
+
+                // Get data
+                UUID uuid = claim.getUUID();
+                String defaultValue = instance.getSettings().getDefaultValuesCode("all");
+                Map<String,LinkedHashMap<String,Boolean>> perm = new HashMap<>(instance.getSettings().getDefaultValues());
+
+                // Update perms
+                claim.setPermissions(perm);
+
+                // Update weather and fly
                 updateWeatherChunk(claim);
                 updateFlyChunk(claim);
-	            
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET Permissions = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, defaultValue);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET Permissions = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, defaultValue);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Method to reset all player claims settings
-     * 
+     *
      * @return true if the operation was successful, false otherwise
      */
     public CompletableFuture<Boolean> resetAllPlayerClaimsSettings() {
         return CompletableFuture.supplyAsync(() -> {
             try {
-	        	String defaultValue = instance.getSettings().getDefaultValuesCode("all");
-	        	Map<String,LinkedHashMap<String,Boolean>> perm = new HashMap<>(instance.getSettings().getDefaultValues());
-	            listClaims.values().stream().forEach(c -> {
-	            	if(!c.getUUID().equals(SERVER_UUID)) {
-	                    c.setPermissions(new HashMap<>(perm));
-	    	            // Update weather and fly
-	                    updateWeatherChunk(c);
-	                    updateFlyChunk(c);
-	            	}
-	            });
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid <> ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, defaultValue);
-	                    preparedStatement.setString(2, SERVER_UUID.toString());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                String defaultValue = instance.getSettings().getDefaultValuesCode("all");
+                Map<String,LinkedHashMap<String,Boolean>> perm = new HashMap<>(instance.getSettings().getDefaultValues());
+                listClaims.values().stream().forEach(c -> {
+                    if(!c.getUUID().equals(SERVER_UUID)) {
+                        c.setPermissions(new HashMap<>(perm));
+                        // Update weather and fly
+                        updateWeatherChunk(c);
+                        updateFlyChunk(c);
+                    }
+                });
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid <> ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, defaultValue);
+                        preparedStatement.setString(2, SERVER_UUID.toString());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -3634,89 +3634,89 @@ public class ClaimMain {
     public CompletableFuture<Boolean> sellChunk(Player player, Claim claim) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-	        	// Get data
-            	String playerName = player.getName();
-            	UUID playerId = player.getUniqueId();
-	        	String old_name = claim.getName();
-	            String owner = claim.getOwner();
-	            double price = claim.getPrice();
-	            
-	            // Money transfer
-	            if(!owner.equalsIgnoreCase("*")) {
-	            	instance.getVault().addPlayerBalance(owner, price);
-	            }
-	            instance.getVault().removePlayerBalance(playerName, price);
-	
-	            // Set uuid of the old owner, and update their claims count
-	            UUID uuid = claim.getUUID();
-	            if(!owner.equals("*")) {
-		            Player ownerP = Bukkit.getPlayer(owner);
-		            if (ownerP != null && ownerP.isOnline()) {
-		                CPlayer cOwner = instance.getPlayerMain().getCPlayer(uuid);
-		                cOwner.setClaimsCount(cOwner.getClaimsCount() - 1);
-		            }
-	            }
-	            
-	            // Delete old owner claim
-	            playerClaims.get(uuid).remove(claim);
-	            if (playerClaims.get(uuid).isEmpty()) playerClaims.remove(uuid);
-	            
-	            // Set uuid of the new owner and update their claims count
-		        CPlayer cTarget = instance.getPlayerMain().getCPlayer(playerId);
-		        cTarget.setClaimsCount(cTarget.getClaimsCount() + 1);
-	            
-	            // Set the new owner to him
-	            claim.setOwner(playerName);
-	            
-	            // Set the new name of the bought claim
-	            int id = findFreeId(playerId);
-	            String new_name = "claim-" + String.valueOf(id);
-	            claim.setName(new_name);
-	            claim.setId(id);
-	            claim.setUUID(playerId);
-	            
-	            // Add the new owner to members if not member, and remove the old owner
-	            CustomSet<UUID> members = new CustomSet<>(claim.getMembers());
-	            if (!members.contains(playerId)) {
-	                members.add(playerId);
-	            }
-	            members.remove(uuid);
-	            claim.setMembers(members);
-	            String members_string = getMemberString(claim);
-	            
-	            // Delete the sale and set the price to 0.0
-	            claim.setSale(false);
-	            claim.setPrice(0);
-	            
-	            // Add the claim to the new owner
-	            playerClaims.computeIfAbsent(playerId, k -> new CustomSet<>()).add(claim);
-	            
-	            // Update the bossbars, and maps
-	        	Set<Chunk> chunks = claim.getChunks();
-	            instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
-	            getMapAutoForChunks(chunks);
-	        	if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
-	        	if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
-	        	if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
-	            
-	        	// Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                	preparedStatement.setInt(1, id);
-	                    preparedStatement.setString(2, playerId.toString());
-	                    preparedStatement.setString(3, playerName);
-	                    preparedStatement.setString(4, members_string);
-	                    preparedStatement.setString(5, new_name);
-	                    preparedStatement.setString(6, uuid.toString());
-	                    preparedStatement.setString(7, old_name);
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Get data
+                String playerName = player.getName();
+                UUID playerId = player.getUniqueId();
+                String old_name = claim.getName();
+                String owner = claim.getOwner();
+                double price = claim.getPrice();
+
+                // Money transfer
+                if(!owner.equalsIgnoreCase("*")) {
+                    instance.getVault().addPlayerBalance(owner, price);
+                }
+                instance.getVault().removePlayerBalance(playerName, price);
+
+                // Set uuid of the old owner, and update their claims count
+                UUID uuid = claim.getUUID();
+                if(!owner.equals("*")) {
+                    Player ownerP = Bukkit.getPlayer(owner);
+                    if (ownerP != null && ownerP.isOnline()) {
+                        CPlayer cOwner = instance.getPlayerMain().getCPlayer(uuid);
+                        cOwner.setClaimsCount(cOwner.getClaimsCount() - 1);
+                    }
+                }
+
+                // Delete old owner claim
+                playerClaims.get(uuid).remove(claim);
+                if (playerClaims.get(uuid).isEmpty()) playerClaims.remove(uuid);
+
+                // Set uuid of the new owner and update their claims count
+                CPlayer cTarget = instance.getPlayerMain().getCPlayer(playerId);
+                cTarget.setClaimsCount(cTarget.getClaimsCount() + 1);
+
+                // Set the new owner to him
+                claim.setOwner(playerName);
+
+                // Set the new name of the bought claim
+                int id = findFreeId(playerId);
+                String new_name = "claim-" + String.valueOf(id);
+                claim.setName(new_name);
+                claim.setId(id);
+                claim.setUUID(playerId);
+
+                // Add the new owner to members if not member, and remove the old owner
+                CustomSet<UUID> members = new CustomSet<>(claim.getMembers());
+                if (!members.contains(playerId)) {
+                    members.add(playerId);
+                }
+                members.remove(uuid);
+                claim.setMembers(members);
+                String members_string = getMemberString(claim);
+
+                // Delete the sale and set the price to 0.0
+                claim.setSale(false);
+                claim.setPrice(0);
+
+                // Add the claim to the new owner
+                playerClaims.computeIfAbsent(playerId, k -> new CustomSet<>()).add(claim);
+
+                // Update the bossbars, and maps
+                Set<Chunk> chunks = claim.getChunks();
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                getMapAutoForChunks(chunks);
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setInt(1, id);
+                        preparedStatement.setString(2, playerId.toString());
+                        preparedStatement.setString(3, playerName);
+                        preparedStatement.setString(4, members_string);
+                        preparedStatement.setString(5, new_name);
+                        preparedStatement.setString(6, uuid.toString());
+                        preparedStatement.setString(7, old_name);
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -3735,92 +3735,92 @@ public class ClaimMain {
     public CompletableFuture<Boolean> setOwner(String playerName, Claim claim) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-	        	// Get data
-	        	String old_name = claim.getName();
-	            String owner = claim.getOwner();
-	            
-	            // Set uuid of the old owner, and update their claims count if online
-	            UUID uuid = claim.getUUID();
-	            if(!owner.equals("*")) {
-		            Player ownerP = Bukkit.getPlayer(owner);
-		            if (ownerP != null && ownerP.isOnline()) {
-		                CPlayer cOwner = instance.getPlayerMain().getCPlayer(uuid);
-		                cOwner.setClaimsCount(cOwner.getClaimsCount() - 1);
-		            }
-	            } else {
-	            	uuid = SERVER_UUID;
-	            }
-	            
-	            // Delete old owner claim
-	            playerClaims.get(uuid).remove(claim);
-	            if (playerClaims.get(uuid).isEmpty()) playerClaims.remove(uuid);
-	            
-	            // Update the claims count of new owner if online, and set the new owner to him
-	            UUID uuidNewOwner = instance.getPlayerMain().getPlayerUUID(playerName);
-	            String uuid_new_owner = uuidNewOwner.toString();
-	            Player player = Bukkit.getPlayer(playerName);
-	            if (player != null && player.isOnline()) {
-	                CPlayer cTarget = instance.getPlayerMain().getCPlayer(uuidNewOwner);
-	                cTarget.setClaimsCount(cTarget.getClaimsCount() + 1);
-	            }
-	            
-	            // Set the new owner to him
-	            claim.setOwner(playerName);
-	            
-	            // Set the new name of the bought claim
-	            int id = findFreeId(uuidNewOwner);
-	            String new_name = "claim-" + String.valueOf(id);
-	            claim.setName(new_name);
+                // Get data
+                String old_name = claim.getName();
+                String owner = claim.getOwner();
 
-	            // Set new id and uuid
-	            claim.setId(id);
-	            claim.setUUID(uuidNewOwner);
-	            
-	            // Add the new owner to members if not member, and remove the old owner
-	            CustomSet<UUID> members = new CustomSet<>(claim.getMembers());
-	            if (!members.contains(uuidNewOwner)) {
-	                members.add(uuidNewOwner);
-	            }
-	            members.remove(uuid);
-	            claim.setMembers(members);
-	            String members_string = getMemberString(claim);
-	            
-	            // Add the claim to the new owner
-	            playerClaims.computeIfAbsent(uuidNewOwner, k -> new CustomSet<>()).add(claim);
-	            
-	            // Update the bossbars, and maps
-	        	Set<Chunk> chunks = claim.getChunks();
-	        	instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
-	        	getMapAutoForChunks(chunks);
-	        	if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
-	        	if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
-	        	if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
-	            
-	            // Updata database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                	preparedStatement.setInt(1, id);
-	                    preparedStatement.setString(2, uuid_new_owner);
-	                    preparedStatement.setString(3, playerName);
-	                    preparedStatement.setString(4, members_string);
-	                    preparedStatement.setString(5, new_name);
-	                    preparedStatement.setString(6, uuid.toString());
-	                    preparedStatement.setString(7, old_name);
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                // Set uuid of the old owner, and update their claims count if online
+                UUID uuid = claim.getUUID();
+                if(!owner.equals("*")) {
+                    Player ownerP = Bukkit.getPlayer(owner);
+                    if (ownerP != null && ownerP.isOnline()) {
+                        CPlayer cOwner = instance.getPlayerMain().getCPlayer(uuid);
+                        cOwner.setClaimsCount(cOwner.getClaimsCount() - 1);
+                    }
+                } else {
+                    uuid = SERVER_UUID;
+                }
+
+                // Delete old owner claim
+                playerClaims.get(uuid).remove(claim);
+                if (playerClaims.get(uuid).isEmpty()) playerClaims.remove(uuid);
+
+                // Update the claims count of new owner if online, and set the new owner to him
+                UUID uuidNewOwner = instance.getPlayerMain().getPlayerUUID(playerName);
+                String uuid_new_owner = uuidNewOwner.toString();
+                Player player = Bukkit.getPlayer(playerName);
+                if (player != null && player.isOnline()) {
+                    CPlayer cTarget = instance.getPlayerMain().getCPlayer(uuidNewOwner);
+                    cTarget.setClaimsCount(cTarget.getClaimsCount() + 1);
+                }
+
+                // Set the new owner to him
+                claim.setOwner(playerName);
+
+                // Set the new name of the bought claim
+                int id = findFreeId(uuidNewOwner);
+                String new_name = "claim-" + String.valueOf(id);
+                claim.setName(new_name);
+
+                // Set new id and uuid
+                claim.setId(id);
+                claim.setUUID(uuidNewOwner);
+
+                // Add the new owner to members if not member, and remove the old owner
+                CustomSet<UUID> members = new CustomSet<>(claim.getMembers());
+                if (!members.contains(uuidNewOwner)) {
+                    members.add(uuidNewOwner);
+                }
+                members.remove(uuid);
+                claim.setMembers(members);
+                String members_string = getMemberString(claim);
+
+                // Add the claim to the new owner
+                playerClaims.computeIfAbsent(uuidNewOwner, k -> new CustomSet<>()).add(claim);
+
+                // Update the bossbars, and maps
+                Set<Chunk> chunks = claim.getChunks();
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                getMapAutoForChunks(chunks);
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
+
+                // Updata database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setInt(1, id);
+                        preparedStatement.setString(2, uuid_new_owner);
+                        preparedStatement.setString(3, playerName);
+                        preparedStatement.setString(4, members_string);
+                        preparedStatement.setString(5, new_name);
+                        preparedStatement.setString(6, uuid.toString());
+                        preparedStatement.setString(7, old_name);
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Method to change the owner of a claim.
      *
@@ -3832,103 +3832,103 @@ public class ClaimMain {
     public CompletableFuture<Boolean> setOwner(String newOwner, CustomSet<Claim> claims, String oldOwner) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-	            
-	            // Set uuid of the old owner, and update their claims count if online
-	            UUID uuid_real = instance.getPlayerMain().getPlayerUUID(oldOwner);
-	            if(!oldOwner.equals("*")) {
-		            Player ownerP = Bukkit.getPlayer(oldOwner);
-		            if (ownerP != null && ownerP.isOnline()) {
-		                CPlayer cOwner = instance.getPlayerMain().getCPlayer(uuid_real);
-		                cOwner.setClaimsCount(cOwner.getClaimsCount() - claims.size());
-		            }
-	            } else {
-	            	uuid_real = SERVER_UUID;
-	            }
-	            
-	            // Delete old owner claim
-	            playerClaims.get(uuid_real).removeAll(claims);
-	            if (playerClaims.get(uuid_real).isEmpty()) playerClaims.remove(uuid_real);
-	            
-	            // Update the claims count of new owner if online, and set the new owner to him
-	            UUID uuidNewOwner = instance.getPlayerMain().getPlayerUUID(newOwner);
-	            String uuid_new_owner = uuidNewOwner.toString();
-	            Player player = Bukkit.getPlayer(newOwner);
-	            if (player != null && player.isOnline()) {
-	                CPlayer cTarget = instance.getPlayerMain().getCPlayer(uuidNewOwner);
-	                cTarget.setClaimsCount(cTarget.getClaimsCount() + claims.size());
-	            }
-	            
-	            // Updata database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                	
-	                	for(Claim claim : claims) {
-	                		
-	                		int id = findFreeId(uuidNewOwner);
-	                		String old_name = claim.getName();
-	                		
-	                		// Set the new owner to him
-	        	            claim.setOwner(newOwner);
-	        	            
-	        	            // Set new id and uuid
-	        	            claim.setUUID(uuidNewOwner);
-	        	            claim.setId(id);
-	        	            
-	        	            // Set the new name of the bought claim
-	        	            String new_name = "claim-" + String.valueOf(id);
-	        	            claim.setName(new_name);
-	        	            
-	        	            // Add the new owner to members if not member, and remove the old owner
-	        	            CustomSet<UUID> members = new CustomSet<>(claim.getMembers());
-	        	            if (!members.contains(uuidNewOwner)) {
-	        	                members.add(uuidNewOwner);
-	        	            }
-	        	            members.remove(uuid_real);
-	        	            claim.setMembers(members);
-	        	            String members_string = getMemberString(claim);
-	        	            
-	        	            // Add claim
-	        	            playerClaims.computeIfAbsent(uuidNewOwner, k -> new CustomSet<>()).add(claim);
-	        	            
-	        	            // Update the bossbars, and maps
-	        	        	Set<Chunk> chunks = claim.getChunks();
-	        	        	getMapAutoForChunks(chunks);
-	        	        	instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
-	        	        	if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
-	        	        	if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
-	        	        	if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
-	        	        	
-		                	preparedStatement.setInt(1, id);
-		                	preparedStatement.setString(2, uuid_new_owner);
-		                    preparedStatement.setString(3, newOwner);
-		                    preparedStatement.setString(4, members_string);
-		                    preparedStatement.setString(5, new_name);
-		                    preparedStatement.setString(6, uuid_real.toString());
-		                    preparedStatement.setString(7, old_name);
-		                    preparedStatement.addBatch();
-	                	}
-	                	
-	                	int[] n = preparedStatement.executeBatch();
-		                return n[0]>0;
-		            } catch (SQLException e) {
-		                e.printStackTrace();
-		                return false;
-		            }
-	            } catch (Exception e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                // Set uuid of the old owner, and update their claims count if online
+                UUID uuid_real = instance.getPlayerMain().getPlayerUUID(oldOwner);
+                if(!oldOwner.equals("*")) {
+                    Player ownerP = Bukkit.getPlayer(oldOwner);
+                    if (ownerP != null && ownerP.isOnline()) {
+                        CPlayer cOwner = instance.getPlayerMain().getCPlayer(uuid_real);
+                        cOwner.setClaimsCount(cOwner.getClaimsCount() - claims.size());
+                    }
+                } else {
+                    uuid_real = SERVER_UUID;
+                }
+
+                // Delete old owner claim
+                playerClaims.get(uuid_real).removeAll(claims);
+                if (playerClaims.get(uuid_real).isEmpty()) playerClaims.remove(uuid_real);
+
+                // Update the claims count of new owner if online, and set the new owner to him
+                UUID uuidNewOwner = instance.getPlayerMain().getPlayerUUID(newOwner);
+                String uuid_new_owner = uuidNewOwner.toString();
+                Player player = Bukkit.getPlayer(newOwner);
+                if (player != null && player.isOnline()) {
+                    CPlayer cTarget = instance.getPlayerMain().getCPlayer(uuidNewOwner);
+                    cTarget.setClaimsCount(cTarget.getClaimsCount() + claims.size());
+                }
+
+                // Updata database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+
+                        for(Claim claim : claims) {
+
+                            int id = findFreeId(uuidNewOwner);
+                            String old_name = claim.getName();
+
+                            // Set the new owner to him
+                            claim.setOwner(newOwner);
+
+                            // Set new id and uuid
+                            claim.setUUID(uuidNewOwner);
+                            claim.setId(id);
+
+                            // Set the new name of the bought claim
+                            String new_name = "claim-" + String.valueOf(id);
+                            claim.setName(new_name);
+
+                            // Add the new owner to members if not member, and remove the old owner
+                            CustomSet<UUID> members = new CustomSet<>(claim.getMembers());
+                            if (!members.contains(uuidNewOwner)) {
+                                members.add(uuidNewOwner);
+                            }
+                            members.remove(uuid_real);
+                            claim.setMembers(members);
+                            String members_string = getMemberString(claim);
+
+                            // Add claim
+                            playerClaims.computeIfAbsent(uuidNewOwner, k -> new CustomSet<>()).add(claim);
+
+                            // Update the bossbars, and maps
+                            Set<Chunk> chunks = claim.getChunks();
+                            getMapAutoForChunks(chunks);
+                            instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                            if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
+                            if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
+                            if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
+
+                            preparedStatement.setInt(1, id);
+                            preparedStatement.setString(2, uuid_new_owner);
+                            preparedStatement.setString(3, newOwner);
+                            preparedStatement.setString(4, members_string);
+                            preparedStatement.setString(5, new_name);
+                            preparedStatement.setString(6, uuid_real.toString());
+                            preparedStatement.setString(7, old_name);
+                            preparedStatement.addBatch();
+                        }
+
+                        int[] n = preparedStatement.executeBatch();
+                        return n[0]>0;
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Remove a chunk from a claim
-     * 
+     *
      * @param claim The target claim
      * @param chunk_default The target chunk in string format (world;x;z)
      * @return true if the merge process was initiated successfully
@@ -3936,109 +3936,109 @@ public class ClaimMain {
     public CompletableFuture<Boolean> removeClaimChunk(Claim claim, String chunk_default){
         return CompletableFuture.supplyAsync(() -> {
             try {
-            	String[] parts = chunk_default.split(";");
-            	World world = Bukkit.getWorld(parts[0]);
-            	if(world == null) return false;
-            	int X_;
-            	int Z_;
-            	try {
-            		X_ = Integer.parseInt(parts[1]);
-            	} catch (NumberFormatException e) {
-            		return false;
-            	}
-            	try {
-            		Z_ = Integer.parseInt(parts[2]);
-            	} catch (NumberFormatException e) {
-            		return false;
-            	}
-            	if(instance.isFolia()) {
-            		CompletableFuture<Boolean> future = world.getChunkAtAsync(X_, Z_).thenApply(chunk -> {
-            			
-            			// Remove chunk
-            			Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
-            			if(!chunks.contains(chunk)) return false;
-                    	chunks.remove(chunk);
-                    	claim.setChunks(chunks);
-                    	listClaims.remove(chunk);
-                    	
-                    	// Remove bossbar and maps
+                String[] parts = chunk_default.split(";");
+                World world = Bukkit.getWorld(parts[0]);
+                if(world == null) return false;
+                int X_;
+                int Z_;
+                try {
+                    X_ = Integer.parseInt(parts[1]);
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+                try {
+                    Z_ = Integer.parseInt(parts[2]);
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+                if(instance.isFolia()) {
+                    CompletableFuture<Boolean> future = world.getChunkAtAsync(X_, Z_).thenApply(chunk -> {
+
+                        // Remove chunk
+                        Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
+                        if(!chunks.contains(chunk)) return false;
+                        chunks.remove(chunk);
+                        claim.setChunks(chunks);
+                        listClaims.remove(chunk);
+
+                        // Remove bossbar and maps
                         if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().deleteMarker(Set.of(chunk));
                         if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().deleteMarker(Set.of(chunk));
                         if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().deleteMarker(Set.of(chunk));
-                    	instance.executeSync(() -> instance.getBossBars().deactivateBossBar(Set.of(chunk)));
+                        instance.executeSync(() -> instance.getBossBars().deactivateBossBar(Set.of(chunk)));
                         updateWeatherChunk(claim);
                         updateFlyChunk(claim);
                         getMapAutoForChunks(chunks);
-        	            
-        	            // Serialize chunks
-        	            String chunksData = serializeChunks(chunks);
-        	            
-        	            // Get uuid of the owner
-        	            UUID uuid = claim.getUUID();
-        	            
-        	            // Update database
-        	            try (Connection connection = instance.getDataSource().getConnection()) {
-        	                String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
-        	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-        	                    preparedStatement.setString(1, chunksData);
-        	                    preparedStatement.setString(2, uuid.toString());
-        	                    preparedStatement.setString(3, claim.getName());
-        	                    preparedStatement.executeUpdate();
-        	                }
-        	                return true;
-        	            } catch (SQLException e) {
-        	                e.printStackTrace();
-        	                return false;
-        	            }
-            		});
-            		return future.join();
-            	} else {
-            		Chunk chunk = world.getChunkAt(X_, Z_);
-            		// Remove chunk
-            		Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
-                	chunks.remove(chunk);
-                	claim.setChunks(chunks);
-                	listClaims.remove(chunk);
-                	
-                	// Remove bossbar and maps
+
+                        // Serialize chunks
+                        String chunksData = serializeChunks(chunks);
+
+                        // Get uuid of the owner
+                        UUID uuid = claim.getUUID();
+
+                        // Update database
+                        try (Connection connection = instance.getDataSource().getConnection()) {
+                            String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                            try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                                preparedStatement.setString(1, chunksData);
+                                preparedStatement.setString(2, uuid.toString());
+                                preparedStatement.setString(3, claim.getName());
+                                preparedStatement.executeUpdate();
+                            }
+                            return true;
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            return false;
+                        }
+                    });
+                    return future.join();
+                } else {
+                    Chunk chunk = world.getChunkAt(X_, Z_);
+                    // Remove chunk
+                    Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
+                    chunks.remove(chunk);
+                    claim.setChunks(chunks);
+                    listClaims.remove(chunk);
+
+                    // Remove bossbar and maps
                     if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().deleteMarker(Set.of(chunk));
                     if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().deleteMarker(Set.of(chunk));
                     if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().deleteMarker(Set.of(chunk));
-                	instance.executeSync(() -> instance.getBossBars().deactivateBossBar(Set.of(chunk)));
+                    instance.executeSync(() -> instance.getBossBars().deactivateBossBar(Set.of(chunk)));
                     updateWeatherChunk(claim);
                     updateFlyChunk(claim);
-    	            
-    	            // Serialize chunks
-    	            String chunksData = serializeChunks(chunks);
-    	            
-    	            // Get uuid of the owner
-    	            UUID uuid = claim.getUUID();
-    	            
-    	            // Update database
-    	            try (Connection connection = instance.getDataSource().getConnection()) {
-    	                String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
-    	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-    	                    preparedStatement.setString(1, chunksData);
-    	                    preparedStatement.setString(2, uuid.toString());
-    	                    preparedStatement.setString(3, claim.getName());
-    	                    preparedStatement.executeUpdate();
-    	                }
-    	                return true;
-    	            } catch (SQLException e) {
-    	                e.printStackTrace();
-    	                return false;
-    	            }
-            	}
+
+                    // Serialize chunks
+                    String chunksData = serializeChunks(chunks);
+
+                    // Get uuid of the owner
+                    UUID uuid = claim.getUUID();
+
+                    // Update database
+                    try (Connection connection = instance.getDataSource().getConnection()) {
+                        String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                        try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                            preparedStatement.setString(1, chunksData);
+                            preparedStatement.setString(2, uuid.toString());
+                            preparedStatement.setString(3, claim.getName());
+                            preparedStatement.executeUpdate();
+                        }
+                        return true;
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Remove a chunk from a claim
-     * 
+     *
      * @param claim The target claim
      * @param chunk The chunk to remove
      * @return true if the merge process was initiated successfully
@@ -4046,51 +4046,51 @@ public class ClaimMain {
     public CompletableFuture<Boolean> removeClaimChunk(Claim claim, Chunk chunk){
         return CompletableFuture.supplyAsync(() -> {
             try {
-        		// Remove chunk
-        		Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
-            	chunks.remove(chunk);
-            	claim.setChunks(chunks);
-            	listClaims.remove(chunk);
-            	
-            	// Remove bossbar and maps
+                // Remove chunk
+                Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
+                chunks.remove(chunk);
+                claim.setChunks(chunks);
+                listClaims.remove(chunk);
+
+                // Remove bossbar and maps
                 if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().deleteMarker(Set.of(chunk));
                 if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().deleteMarker(Set.of(chunk));
                 if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().deleteMarker(Set.of(chunk));
-            	instance.executeSync(() -> instance.getBossBars().deactivateBossBar(Set.of(chunk)));
+                instance.executeSync(() -> instance.getBossBars().deactivateBossBar(Set.of(chunk)));
                 updateWeatherChunk(claim);
                 updateFlyChunk(claim);
                 getMapAutoForChunks(chunks);
-	            
-	            // Serialize chunks
-	            String chunksData = serializeChunks(chunks);
-	            
-	            // Get uuid of the owner
-	            UUID uuid = claim.getUUID();
-	            
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, chunksData);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                // Serialize chunks
+                String chunksData = serializeChunks(chunks);
+
+                // Get uuid of the owner
+                UUID uuid = claim.getUUID();
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, chunksData);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Add a chunk to a claim
-     * 
+     *
      * @param claim The target claim
      * @param chunk The target chunk
      * @return true if the merge process was initiated successfully
@@ -4098,49 +4098,49 @@ public class ClaimMain {
     public CompletableFuture<Boolean> addClaimChunk(Claim claim, Chunk chunk){
         return CompletableFuture.supplyAsync(() -> {
             try {
-    			// Add chunk
-            	Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
-            	if(chunks.contains(chunk)) return false;
-            	chunks.add(chunk);
-            	claim.setChunks(chunks);
-            	listClaims.put(chunk,claim);
-            	
-            	// Add bossbar and maps
+                // Add chunk
+                Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
+                if(chunks.contains(chunk)) return false;
+                chunks.add(chunk);
+                claim.setChunks(chunks);
+                listClaims.put(chunk,claim);
+
+                // Add bossbar and maps
                 if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(claim);
                 if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(claim);
                 if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(claim);
-            	instance.executeSync(() -> instance.getBossBars().activateBossBar(Set.of(chunk)));
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(Set.of(chunk)));
                 updateWeatherChunk(claim);
                 updateFlyChunk(claim);
                 getMapAutoForChunks(chunks);
-            	
+
                 // Serialize chunks
-	            String chunksData = serializeChunks(chunks);
-	            
-	            // Get uuid of the owner
-	            UUID uuid = claim.getUUID();
-	            
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, chunksData);
-	                    preparedStatement.setString(2, uuid.toString());
-	                    preparedStatement.setString(3, claim.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+                String chunksData = serializeChunks(chunks);
+
+                // Get uuid of the owner
+                UUID uuid = claim.getUUID();
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, chunksData);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Merges claims into one.
      *
@@ -4151,73 +4151,73 @@ public class ClaimMain {
     public CompletableFuture<Boolean> mergeClaims(Claim claim1, CustomSet<Claim> claims) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-	            
-	            // Collect chunks from claims and update listClaims map and add new chunks
-	            claims.stream().forEach(claim -> {
-	            	Set<Chunk> chunks = claim.getChunks();
-	            	chunks.stream().forEach(c -> listClaims.put(c, claim1));
-	            	claim1.addChunks(chunks);
-	            	instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
-	                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim1);
-	                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim1);
-	                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim1);
-	                updateWeatherChunk(claim1);
-	                updateFlyChunk(claim1);
-	                getMapAutoForChunks(chunks);
-	            });
-	            
-	            // Get uuid of the owner
-	            UUID uuid = claim1.getUUID();
-	            String uuid_string = uuid.toString();
-	            String owner = claim1.getOwner();
-	            if(!owner.equals("*")) {
-		            Player player = Bukkit.getPlayer(owner);
-		            if(player != null && player.isOnline()) {
-		            	// Update claims count of player
-			            CPlayer cPlayer = instance.getPlayerMain().getCPlayer(uuid);
-			            cPlayer.setClaimsCount(cPlayer.getClaimsCount()-claims.size());
-		            }
-	            }
-		            
-	            // Remove claims from player's claims
-	            Set<Claim> toRemove = new HashSet<>(claims);
-	            instance.executeSync(() -> {
-	                playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).removeAll(toRemove);
-	            });
-	            
-	            // Serialize chunks
-	            String chunksData = serializeChunks(claim1.getChunks());
-	            
-	            // Update database
-	            try (Connection connection = instance.getDataSource().getConnection()) {
-	                String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
-	                    preparedStatement.setString(1, chunksData);
-	                    preparedStatement.setString(2, uuid_string);
-	                    preparedStatement.setString(3, claim1.getName());
-	                    preparedStatement.executeUpdate();
-	                }
-	                String deleteQuery = "DELETE FROM scs_claims_1 WHERE owner_uuid = ? AND claim_name = ?";
-	                try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
-	                	for(Claim claim : claims) {
-	                        preparedStatement.setString(1, uuid_string);
-	                        preparedStatement.setString(2, claim.getName());
-	                        preparedStatement.addBatch();
-	                	};
-	                	preparedStatement.executeBatch();
-	                }
-	                return true;
-	            } catch (SQLException e) {
-	                e.printStackTrace();
-	                return false;
-	            }
+
+                // Collect chunks from claims and update listClaims map and add new chunks
+                claims.stream().forEach(claim -> {
+                    Set<Chunk> chunks = claim.getChunks();
+                    chunks.stream().forEach(c -> listClaims.put(c, claim1));
+                    claim1.addChunks(chunks);
+                    instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                    if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim1);
+                    if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim1);
+                    if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim1);
+                    updateWeatherChunk(claim1);
+                    updateFlyChunk(claim1);
+                    getMapAutoForChunks(chunks);
+                });
+
+                // Get uuid of the owner
+                UUID uuid = claim1.getUUID();
+                String uuid_string = uuid.toString();
+                String owner = claim1.getOwner();
+                if(!owner.equals("*")) {
+                    Player player = Bukkit.getPlayer(owner);
+                    if(player != null && player.isOnline()) {
+                        // Update claims count of player
+                        CPlayer cPlayer = instance.getPlayerMain().getCPlayer(uuid);
+                        cPlayer.setClaimsCount(cPlayer.getClaimsCount()-claims.size());
+                    }
+                }
+
+                // Remove claims from player's claims
+                Set<Claim> toRemove = new HashSet<>(claims);
+                instance.executeSync(() -> {
+                    playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>()).removeAll(toRemove);
+                });
+
+                // Serialize chunks
+                String chunksData = serializeChunks(claim1.getChunks());
+
+                // Update database
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, chunksData);
+                        preparedStatement.setString(2, uuid_string);
+                        preparedStatement.setString(3, claim1.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    String deleteQuery = "DELETE FROM scs_claims_1 WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
+                        for(Claim claim : claims) {
+                            preparedStatement.setString(1, uuid_string);
+                            preparedStatement.setString(2, claim.getName());
+                            preparedStatement.addBatch();
+                        };
+                        preparedStatement.executeBatch();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
         });
     }
-    
+
     /**
      * Displays particles around the specified chunks for claiming.
      * Particles are shown only at the borders of the chunks and not between adjacent chunks.
@@ -4228,44 +4228,44 @@ public class ClaimMain {
      * @param see if its from the /claim see command
      */
     public void displayChunksNotEnter(Player player, CustomSet<Chunk> chunks) {
-    	
-    	if(chunksParticles.containsAll(chunks)) return;
-    	
-    	chunksParticles.addAll(chunks);
+
+        if(chunksParticles.containsAll(chunks)) return;
+
+        chunksParticles.addAll(chunks);
         Particle.DustOptions dustOptions = new Particle.DustOptions(Color.fromRGB(255, 0, 0), 1.5f);
 
         CompletableFuture<Set<Location>> futureLocations = getParticleLocations(chunks);
-        
+
         futureLocations.thenAccept(particleLocations -> {
-	        if (instance.isFolia()) {
-	            final int[] counter = {0};
-	            Bukkit.getAsyncScheduler().runAtFixedRate(instance, task -> {
-	                if (counter[0] >= 10) {
-	                    task.cancel();
-	                    chunksParticles.removeAll(chunks);
-	                    return;
-	                }
-	                World world = player.getWorld();
-	                particleLocations.stream().forEach(location -> world.spawnParticle(Particle.REDSTONE, location, 1, 0, 0, 0, 0, dustOptions));
-	                counter[0]++;
-	            }, 0, 500, TimeUnit.MILLISECONDS);
-	        } else {
-	            new BukkitRunnable() {
-	                int counter = 0;
-	
-	                @Override
-	                public void run() {
-	                    if (counter >= 10) {
-	                        this.cancel();
-	                        chunksParticles.removeAll(chunks);
-	                        return;
-	                    }
-	                    World world = player.getWorld();
-	                    particleLocations.stream().forEach(location -> world.spawnParticle(Particle.REDSTONE, location, 1, 0, 0, 0, 0, dustOptions));
-	                    counter++;
-	                }
-	            }.runTaskTimerAsynchronously(instance, 0, 10L);
-	        }
+            if (instance.isFolia()) {
+                final int[] counter = {0};
+                Bukkit.getAsyncScheduler().runAtFixedRate(instance, task -> {
+                    if (counter[0] >= 10) {
+                        task.cancel();
+                        chunksParticles.removeAll(chunks);
+                        return;
+                    }
+                    World world = player.getWorld();
+                    particleLocations.stream().forEach(location -> world.spawnParticle(Particle.REDSTONE, location, 1, 0, 0, 0, 0, dustOptions));
+                    counter[0]++;
+                }, 0, 500, TimeUnit.MILLISECONDS);
+            } else {
+                new BukkitRunnable() {
+                    int counter = 0;
+
+                    @Override
+                    public void run() {
+                        if (counter >= 10) {
+                            this.cancel();
+                            chunksParticles.removeAll(chunks);
+                            return;
+                        }
+                        World world = player.getWorld();
+                        particleLocations.stream().forEach(location -> world.spawnParticle(Particle.REDSTONE, location, 1, 0, 0, 0, 0, dustOptions));
+                        counter++;
+                    }
+                }.runTaskTimerAsynchronously(instance, 0, 10L);
+            }
         });
     }
 
@@ -4279,46 +4279,46 @@ public class ClaimMain {
      * @param see if its from the /claim see command
      */
     public void displayChunks(Player player, CustomSet<Chunk> chunks, boolean claim, boolean see) {
-    	
-    	if(chunksParticles.containsAll(chunks)) return;
-    	
-    	chunksParticles.addAll(chunks);
+
+        if(chunksParticles.containsAll(chunks)) return;
+
+        chunksParticles.addAll(chunks);
         Particle.DustOptions dustOptions = getDustOptions(player, claim, see);
 
         CompletableFuture<Set<Location>> futureLocations = getParticleLocations(chunks);
-        
+
         futureLocations.thenAccept(particleLocations -> {
-	        if (instance.isFolia()) {
-	            final int[] counter = {0};
-	            Bukkit.getAsyncScheduler().runAtFixedRate(instance, task -> {
-	                if (counter[0] >= 10) {
-	                    task.cancel();
-	                    chunksParticles.removeAll(chunks);
-	                    return;
-	                }
-	                World world = player.getWorld();
-	                particleLocations.stream().forEach(location -> world.spawnParticle(Particle.REDSTONE, location, 1, 0, 0, 0, 0, dustOptions));
-	                counter[0]++;
-	            }, 0, 500, TimeUnit.MILLISECONDS);
-	        } else {
-	            new BukkitRunnable() {
-	                int counter = 0;
-	
-	                @Override
-	                public void run() {
-	                    if (counter >= 10) {
-	                        this.cancel();
-	                        instance.executeSync(() -> {
-	                        	chunksParticles.removeAll(chunks);
-	                        });
-	                        return;
-	                    }
-	                    World world = player.getWorld();
-	                    particleLocations.stream().forEach(location -> world.spawnParticle(Particle.REDSTONE, location, 1, 0, 0, 0, 0, dustOptions));
-	                    counter++;
-	                }
-	            }.runTaskTimerAsynchronously(instance, 0, 10L);
-	        }
+            if (instance.isFolia()) {
+                final int[] counter = {0};
+                Bukkit.getAsyncScheduler().runAtFixedRate(instance, task -> {
+                    if (counter[0] >= 10) {
+                        task.cancel();
+                        chunksParticles.removeAll(chunks);
+                        return;
+                    }
+                    World world = player.getWorld();
+                    particleLocations.stream().forEach(location -> world.spawnParticle(Particle.REDSTONE, location, 1, 0, 0, 0, 0, dustOptions));
+                    counter[0]++;
+                }, 0, 500, TimeUnit.MILLISECONDS);
+            } else {
+                new BukkitRunnable() {
+                    int counter = 0;
+
+                    @Override
+                    public void run() {
+                        if (counter >= 10) {
+                            this.cancel();
+                            instance.executeSync(() -> {
+                                chunksParticles.removeAll(chunks);
+                            });
+                            return;
+                        }
+                        World world = player.getWorld();
+                        particleLocations.stream().forEach(location -> world.spawnParticle(Particle.REDSTONE, location, 1, 0, 0, 0, 0, dustOptions));
+                        counter++;
+                    }
+                }.runTaskTimerAsynchronously(instance, 0, 10L);
+            }
         });
     }
 
@@ -4344,9 +4344,9 @@ public class ClaimMain {
                 return new Particle.DustOptions(Color.fromRGB(255, 255, 255), 1.5f);
             }
         } else if (see) {
-        	return new Particle.DustOptions(Color.fromRGB(124, 0, 255), 1.5f);
+            return new Particle.DustOptions(Color.fromRGB(124, 0, 255), 1.5f);
         } else {
-        	return new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.5f);
+            return new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.5f);
         }
     }
 
@@ -4477,11 +4477,11 @@ public class ClaimMain {
     public void displayChunkBorderWithRadius(Player player, int radius) {
         Particle.DustOptions dustOptions = new Particle.DustOptions(Color.fromRGB(0, 255, 0), 1.5f);
         if (instance.isFolia()) {
-        	Bukkit.getRegionScheduler().run(instance, player.getLocation(), chunktask -> {
-        		Chunk centralChunk = player.getLocation().getChunk();
-            	if(chunksParticles.contains(centralChunk)) return;
-            	chunksParticles.add(centralChunk);
-        		final int[] counter = {0};
+            Bukkit.getRegionScheduler().run(instance, player.getLocation(), chunktask -> {
+                Chunk centralChunk = player.getLocation().getChunk();
+                if(chunksParticles.contains(centralChunk)) return;
+                chunksParticles.add(centralChunk);
+                final int[] counter = {0};
                 Bukkit.getAsyncScheduler().runAtFixedRate(instance, task -> {
                     if (counter[0] >= 10) {
                         task.cancel();
@@ -4507,12 +4507,12 @@ public class ClaimMain {
                     }
                     counter[0]++;
                 }, 0, 500, TimeUnit.MILLISECONDS);
-        	});
+            });
             return;
         }
-		Chunk centralChunk = player.getLocation().getChunk();
-    	if(chunksParticles.contains(centralChunk)) return;
-    	chunksParticles.add(centralChunk);
+        Chunk centralChunk = player.getLocation().getChunk();
+        if(chunksParticles.contains(centralChunk)) return;
+        chunksParticles.add(centralChunk);
         new BukkitRunnable() {
             int counter = 0;
             @Override
@@ -4553,16 +4553,16 @@ public class ClaimMain {
      * @param cmd the command for which help is requested
      */
     public void getHelp(Player player, String help, String cmd) {
-    	if(help.equalsIgnoreCase("no arg")) {
+        if(help.equalsIgnoreCase("no arg")) {
             if(cmd.equalsIgnoreCase("claim")) {
-            	player.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsClaim)));
+                player.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsClaim)));
             } else if (cmd.equalsIgnoreCase("scs")) {
-            	player.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsScs)));
+                player.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsScs)));
             } else if (cmd.equalsIgnoreCase("parea") || cmd.equalsIgnoreCase("protectedarea")) {
-            	player.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsParea)));
+                player.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsParea)));
             }
             return;
-    	}
+        }
         String help_msg = instance.getLanguage().getMessage("help-command." + cmd + "-" + help.toLowerCase());
         if (!help_msg.isEmpty()) {
             player.sendMessage(instance.getLanguage().getMessage("help-separator"));
@@ -4571,14 +4571,14 @@ public class ClaimMain {
             return;
         }
         if(cmd.equalsIgnoreCase("claim")) {
-        	player.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsClaim)));
+            player.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsClaim)));
         } else if (cmd.equalsIgnoreCase("scs")) {
-        	player.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsScs)));
+            player.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsScs)));
         } else if (cmd.equalsIgnoreCase("parea") || cmd.equalsIgnoreCase("protectedarea")) {
-        	player.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsParea)));
+            player.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsParea)));
         }
     }
-    
+
     /**
      * Method to send help for commands.
      *
@@ -4587,28 +4587,28 @@ public class ClaimMain {
      * @param cmd the command for which help is requested
      */
     public void getHelp(CommandSender sender, String help, String cmd) {
-    	if(help.equalsIgnoreCase("no arg")) {
+        if(help.equalsIgnoreCase("no arg")) {
             if(cmd.equalsIgnoreCase("claim")) {
-            	sender.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsClaim)));
+                sender.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsClaim)));
             } else if (cmd.equalsIgnoreCase("scs")) {
-            	sender.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsScs)));
+                sender.sendMessage(instance.getLanguage().getMessage("available-args").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%args%", String.join(", ", commandArgsScs)));
             }
             return;
-    	}
+        }
         String help_msg = instance.getLanguage().getMessage("help-command." + cmd + "-" + help.toLowerCase());
         if (!help_msg.isEmpty()) {
-        	sender.sendMessage(instance.getLanguage().getMessage("help-separator"));
-        	sender.sendMessage(help_msg);
-        	sender.sendMessage(instance.getLanguage().getMessage("help-separator"));
+            sender.sendMessage(instance.getLanguage().getMessage("help-separator"));
+            sender.sendMessage(help_msg);
+            sender.sendMessage(instance.getLanguage().getMessage("help-separator"));
             return;
         }
         if(cmd.equalsIgnoreCase("claim")) {
-        	sender.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsClaim)));
+            sender.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsClaim)));
         } else if (cmd.equalsIgnoreCase("scs")) {
-        	sender.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsScs)));
+            sender.sendMessage(instance.getLanguage().getMessage("sub-arg-not-found").replace("%help-separator%", instance.getLanguage().getMessage("help-separator")).replace("%arg%", help).replace("%args%", String.join(", ", commandArgsScs)));
         }
     }
-    
+
     /**
      * Checks if there are no claims within a specified radius around a given chunk,
      * excluding claims that belong to the player.
@@ -4681,10 +4681,10 @@ public class ClaimMain {
 
             boolean scoreboard = instance.getSettings().getSetting("map-type").equals("scoreboard") && check;
             CScoreboard cScoreboard = scoreboard ? cPlayer.getScoreboard() : null;
-            
+
             // List of map lines
             List<String> lines = new ArrayList<>();
-            
+
             if (scoreboard && cScoreboard != null) {
                 lines.add("§e  ");
             }
@@ -4695,12 +4695,12 @@ public class ClaimMain {
             int centerZ = centerChunk.getZ();
             boolean isClaimed = checkIfClaimExists(centerChunk);
 
-            String name = isClaimed 
-                ? instance.getLanguage().getMessage("map-actual-claim-name-message").replace("%name%", getClaimNameByChunk(centerChunk))
-                : instance.getLanguage().getMessage("map-no-claim-name-message");
+            String name = isClaimed
+                    ? instance.getLanguage().getMessage("map-actual-claim-name-message").replace("%name%", getClaimNameByChunk(centerChunk))
+                    : instance.getLanguage().getMessage("map-no-claim-name-message");
             String coords = instance.getLanguage().getMessage("map-coords-message")
-                .replace("%coords%", centerX + "," + centerZ)
-                .replace("%direction%", direction);
+                    .replace("%coords%", centerX + "," + centerZ)
+                    .replace("%direction%", direction);
             String colorRelationNoClaim = instance.getLanguage().getMessage("map-no-claim-color");
             String colorCursor = instance.getLanguage().getMessage("map-cursor-color");
             String symbolNoClaim = instance.getLanguage().getMessage("map-symbol-no-claim");
@@ -4710,14 +4710,14 @@ public class ClaimMain {
 
             // Function to get chunk symbols
             Function<Chunk, String> getChunkSymbol = chunk -> chunk.equals(centerChunk)
-                ? colorCursor + mapCursor + colorRelationNoClaim
-                : checkIfClaimExists(chunk) 
+                    ? colorCursor + mapCursor + colorRelationNoClaim
+                    : checkIfClaimExists(chunk)
                     ? getRelation(player, chunk) + symbolClaim + colorRelationNoClaim
                     : colorRelationNoClaim + symbolNoClaim;
 
             Map<Integer, String> legendMap = new HashMap<>();
             legendMap.put(-3, "  " + name + (isClaimed ? " " + instance.getLanguage().getMessage("map-actual-claim-name-message-owner")
-                .replace("%owner%", listClaims.get(centerChunk).getOwner()) : ""));
+                    .replace("%owner%", listClaims.get(centerChunk).getOwner()) : ""));
             legendMap.put(-2, "  " + coords);
             legendMap.put(0, "  " + instance.getLanguage().getMessage("map-legend-you").replace("%cursor-color%", colorCursor));
             legendMap.put(1, "  " + instance.getLanguage().getMessage("map-legend-free").replace("%no-claim-color%", colorRelationNoClaim));
@@ -4766,20 +4766,20 @@ public class ClaimMain {
 
     /**
      * Updates the scoreboard for automap
-     * 
+     *
      * @param cScoreboard The scoreboard to update.
      * @param lines The lines to update.
      */
     private void updateScoreboard(CScoreboard cScoreboard, List<String> lines) {
-    	lines.add("§f ");
+        lines.add("§f ");
         int score = 11;
         Map<Integer,String> toRend = new LinkedHashMap<>();
         for (String line : differentiateDuplicates(lines)) {
-        	toRend.put(score--, line);
+            toRend.put(score--, line);
         }
         cScoreboard.updateLines(toRend);
     }
-    
+
     /**
      * Optimized method to check if the list contains duplicate strings and adds spaces to differentiate them.
      *
@@ -4844,11 +4844,11 @@ public class ClaimMain {
      * @return the relation as a string
      */
     public String getRelation(Player player, Chunk chunk) {
-    	Claim claim = listClaims.get(chunk);
-    	if(claim == null) return instance.getLanguage().getMessage("map-claim-relation-visitor");
-    	return checkMembre(claim, player) ? instance.getLanguage().getMessage("map-claim-relation-member") : instance.getLanguage().getMessage("map-claim-relation-visitor");
+        Claim claim = listClaims.get(chunk);
+        if(claim == null) return instance.getLanguage().getMessage("map-claim-relation-visitor");
+        return checkMembre(claim, player) ? instance.getLanguage().getMessage("map-claim-relation-member") : instance.getLanguage().getMessage("map-claim-relation-visitor");
     }
-    
+
     /**
      * Method to update the weather in the claim.
      *
@@ -4856,34 +4856,34 @@ public class ClaimMain {
      * @param result the new weather state
      */
     public void updateWeatherChunk(Claim claim) {
-		Set<Chunk> chunks = claim.getChunks();
-		if(instance.isFolia()) {
-	    	Bukkit.getOnlinePlayers().stream().forEach(p -> {
-	    		Bukkit.getRegionScheduler().run(instance, p.getLocation(), task -> {
-					Chunk c = p.getLocation().getChunk();
-					if(chunks.contains(c)) {
-						boolean value = claim.getPermissionForPlayer("Weather", p);
-		                if(value) {
-		                	p.resetPlayerWeather();
-		                } else {
-		                	p.setPlayerWeather(WeatherType.CLEAR);
-		                }
-					}
-	    		});
-	    	});
-		} else {
-	    	Bukkit.getOnlinePlayers().stream().forEach(p -> {
-				Chunk c = p.getLocation().getChunk();
-				if(chunks.contains(c)) {
-					boolean value = claim.getPermissionForPlayer("Weather", p);
-	                if(value) {
-	                	p.resetPlayerWeather();
-	                } else {
-	                	p.setPlayerWeather(WeatherType.CLEAR);
-	                }
-				}
-	    	});
-		}
+        Set<Chunk> chunks = claim.getChunks();
+        if(instance.isFolia()) {
+            Bukkit.getOnlinePlayers().stream().forEach(p -> {
+                Bukkit.getRegionScheduler().run(instance, p.getLocation(), task -> {
+                    Chunk c = p.getLocation().getChunk();
+                    if(chunks.contains(c)) {
+                        boolean value = claim.getPermissionForPlayer("Weather", p);
+                        if(value) {
+                            p.resetPlayerWeather();
+                        } else {
+                            p.setPlayerWeather(WeatherType.CLEAR);
+                        }
+                    }
+                });
+            });
+        } else {
+            Bukkit.getOnlinePlayers().stream().forEach(p -> {
+                Chunk c = p.getLocation().getChunk();
+                if(chunks.contains(c)) {
+                    boolean value = claim.getPermissionForPlayer("Weather", p);
+                    if(value) {
+                        p.resetPlayerWeather();
+                    } else {
+                        p.setPlayerWeather(WeatherType.CLEAR);
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -4893,28 +4893,28 @@ public class ClaimMain {
      * @param result the new fly state
      */
     public void updateFlyChunk(Claim claim) {
-		Set<Chunk> chunks = claim.getChunks();
-		if(!instance.isFolia()) {
-	    	Bukkit.getOnlinePlayers().stream().forEach(p -> {
-				Chunk c = p.getLocation().getChunk();
-				if(chunks.contains(c)) {
-					boolean value = claim.getPermissionForPlayer("Fly", p);
-	                CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
-	                if(value) {
-	                    if (cPlayer.getClaimAutofly()) {
-	                        instance.getPlayerMain().activePlayerFly(p);
-	                    }
-	                } else {
-	                    if (cPlayer.getClaimFly()) {
-	                        instance.getPlayerMain().removePlayerFly(p);
-	                    }
-	                }
+        Set<Chunk> chunks = claim.getChunks();
+        if(!instance.isFolia()) {
+            Bukkit.getOnlinePlayers().stream().forEach(p -> {
+                Chunk c = p.getLocation().getChunk();
+                if(chunks.contains(c)) {
+                    boolean value = claim.getPermissionForPlayer("Fly", p);
+                    CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
+                    if(value) {
+                        if (cPlayer.getClaimAutofly()) {
+                            instance.getPlayerMain().activePlayerFly(p);
+                        }
+                    } else {
+                        if (cPlayer.getClaimFly()) {
+                            instance.getPlayerMain().removePlayerFly(p);
+                        }
+                    }
 
-				}
-	    	});
-		}
+                }
+            });
+        }
     }
-    
+
     /**
      * Method to reset the weather in the claim.
      *
@@ -4922,24 +4922,24 @@ public class ClaimMain {
      * @param result the new weather state
      */
     public void resetWeatherChunk(Claim claim) {
-		Set<Chunk> chunks = claim.getChunks();
-		if(instance.isFolia()) {
-	    	Bukkit.getOnlinePlayers().stream().forEach(p -> {
-	    		Bukkit.getRegionScheduler().run(instance, p.getLocation(), task -> {
-					Chunk c = p.getLocation().getChunk();
-					if(chunks.contains(c)) {
-		                p.resetPlayerWeather();
-					}
-	    		});
-	    	});
-		} else {
-	    	Bukkit.getOnlinePlayers().stream().forEach(p -> {
-				Chunk c = p.getLocation().getChunk();
-				if(chunks.contains(c)) {
-	                p.resetPlayerWeather();
-				}
-	    	});
-		}
+        Set<Chunk> chunks = claim.getChunks();
+        if(instance.isFolia()) {
+            Bukkit.getOnlinePlayers().stream().forEach(p -> {
+                Bukkit.getRegionScheduler().run(instance, p.getLocation(), task -> {
+                    Chunk c = p.getLocation().getChunk();
+                    if(chunks.contains(c)) {
+                        p.resetPlayerWeather();
+                    }
+                });
+            });
+        } else {
+            Bukkit.getOnlinePlayers().stream().forEach(p -> {
+                Chunk c = p.getLocation().getChunk();
+                if(chunks.contains(c)) {
+                    p.resetPlayerWeather();
+                }
+            });
+        }
     }
 
     /**
@@ -4949,60 +4949,177 @@ public class ClaimMain {
      * @param result the new fly state
      */
     public void resetFlyChunk(Claim claim) {
-		Set<Chunk> chunks = claim.getChunks();
-		if(instance.isFolia()) {
-	    	Bukkit.getOnlinePlayers().stream().forEach(p -> {
-	    		Bukkit.getRegionScheduler().run(instance, p.getLocation(), task -> {
-					Chunk c = p.getLocation().getChunk();
-					if(chunks.contains(c)) {
-		                CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
-		                if (cPlayer.getClaimFly()) {
-		                    instance.getPlayerMain().removePlayerFly(p);
-		                }
-					}
-	    		});
-	    	});
-		} else {
-	    	Bukkit.getOnlinePlayers().stream().forEach(p -> {
-				Chunk c = p.getLocation().getChunk();
-				if(chunks.contains(c)) {
-	                CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
-	                if (cPlayer.getClaimFly()) {
-	                    instance.getPlayerMain().removePlayerFly(p);
-	                }
-				}
-	    	});
-		}
+        Set<Chunk> chunks = claim.getChunks();
+        if(instance.isFolia()) {
+            Bukkit.getOnlinePlayers().stream().forEach(p -> {
+                Bukkit.getRegionScheduler().run(instance, p.getLocation(), task -> {
+                    Chunk c = p.getLocation().getChunk();
+                    if(chunks.contains(c)) {
+                        CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
+                        if (cPlayer.getClaimFly()) {
+                            instance.getPlayerMain().removePlayerFly(p);
+                        }
+                    }
+                });
+            });
+        } else {
+            Bukkit.getOnlinePlayers().stream().forEach(p -> {
+                Chunk c = p.getLocation().getChunk();
+                if(chunks.contains(c)) {
+                    CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
+                    if (cPlayer.getClaimFly()) {
+                        instance.getPlayerMain().removePlayerFly(p);
+                    }
+                }
+            });
+        }
     }
-    
+
     /**
      * Sends the automap to the players
      *
      * @param chunks the chunks
      */
     public void getMapAutoForChunks(Set<Chunk> chunks) {
-    	if(instance.isFolia()) {
-	        Bukkit.getOnlinePlayers().stream().forEach(p -> {
-	        	Bukkit.getRegionScheduler().run(instance, p.getLocation(), task -> {
-		        	Chunk c = p.getLocation().getChunk();
-		        	if(chunks.contains(c)) {
-		        		CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
-		        		if(cPlayer.getClaimAutomap()) {
-		        			getMap(p,c,true);
-		        		}
-		        	}
-	        	});
-	        });
-    	} else {
-	        Bukkit.getOnlinePlayers().stream().forEach(p -> {
-	        	Chunk c = p.getLocation().getChunk();
-	        	if(chunks.contains(c)) {
-	        		CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
-	        		if(cPlayer.getClaimAutomap()) {
-	        			getMap(p,c,true);
-	        		}
-	        	}
-	        });
-    	}
+        if(instance.isFolia()) {
+            Bukkit.getOnlinePlayers().stream().forEach(p -> {
+                Bukkit.getRegionScheduler().run(instance, p.getLocation(), task -> {
+                    Chunk c = p.getLocation().getChunk();
+                    if(chunks.contains(c)) {
+                        CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
+                        if(cPlayer.getClaimAutomap()) {
+                            getMap(p,c,true);
+                        }
+                    }
+                });
+            });
+        } else {
+            Bukkit.getOnlinePlayers().stream().forEach(p -> {
+                Chunk c = p.getLocation().getChunk();
+                if(chunks.contains(c)) {
+                    CPlayer cPlayer = instance.getPlayerMain().getCPlayer(p.getUniqueId());
+                    if(cPlayer.getClaimAutomap()) {
+                        getMap(p,c,true);
+                    }
+                }
+            });
+        }
     }
+
+    public CompletableFuture<Boolean> reloadClaimIndexForWorld(String worldName, boolean loadWorldIfMissing) {
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+
+        if (worldName == null || worldName.isBlank()) {
+            result.complete(false);
+            return result;
+        }
+
+        instance.executeSync(() -> {
+            World world = Bukkit.getWorld(worldName);
+            if (world == null && loadWorldIfMissing) {
+                world = Bukkit.createWorld(new WorldCreator(worldName));
+            }
+            if (world == null) {
+                result.complete(false);
+                return;
+            }
+
+            Iterator<Map.Entry<Chunk, Claim>> it = listClaims.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Chunk, Claim> e = it.next();
+                Chunk k = e.getKey();
+                World kw = (k == null ? null : k.getWorld());
+                if (kw != null && worldName.equals(kw.getName())) {
+                    it.remove();
+                }
+            }
+
+            Set<Claim> uniqueClaims = ConcurrentHashMap.newKeySet();
+            for (CustomSet<Claim> set : playerClaims.values()) {
+                if (set != null) uniqueClaims.addAll(set);
+            }
+
+            List<CompletableFuture<Void>> all = new ArrayList<>();
+
+            for (Claim claim : uniqueClaims) {
+                if (claim == null) continue;
+
+                boolean hasInWorld = false;
+                for (Chunk c : claim.getChunks()) {
+                    World cw = (c == null ? null : c.getWorld());
+                    if (cw != null && worldName.equals(cw.getName())) {
+                        hasInWorld = true;
+                        break;
+                    }
+                }
+                if (!hasInWorld) continue;
+
+                Set<Chunk> newChunks = ConcurrentHashMap.newKeySet();
+                if (instance.isFolia()) {
+                    List<CompletableFuture<Void>> futures = new ArrayList<>();
+                    for (Chunk oldChunk : claim.getChunks()) {
+                        if (oldChunk == null) continue;
+
+                        World cw = oldChunk.getWorld();
+                        if (cw == null || !worldName.equals(cw.getName())) continue;
+
+                        int x = oldChunk.getX();
+                        int z = oldChunk.getZ();
+
+                        CompletableFuture<Void> f = world.getChunkAtAsync(x, z)
+                                .thenAccept(newChunks::add)
+                                .exceptionally(ex -> {
+                                    ex.printStackTrace();
+                                    return null;
+                                });
+                        futures.add(f);
+                    }
+
+                    CompletableFuture<Void> claimFuture = CompletableFuture
+                            .allOf(futures.toArray(new CompletableFuture[0]))
+                            .thenRun(() -> instance.executeSync(() -> {
+                                // claim 내부 chunks도 새 Chunk 인스턴스로 교체
+                                claim.setChunks(new CustomSet<>(newChunks));
+                                for (Chunk nc : newChunks) {
+                                    listClaims.put(nc, claim);
+                                }
+                            }));
+
+                    all.add(claimFuture);
+                } else {
+                    for (Chunk oldChunk : claim.getChunks()) {
+                        if (oldChunk == null) continue;
+
+                        World cw = oldChunk.getWorld();
+                        if (cw == null || !worldName.equals(cw.getName())) continue;
+
+                        Chunk nc = world.getChunkAt(oldChunk.getX(), oldChunk.getZ());
+                        newChunks.add(nc);
+                    }
+
+                    // claim 내부 chunks 교체 + listClaims 재인덱싱
+                    claim.setChunks(new CustomSet<>(newChunks));
+                    for (Chunk nc : newChunks) {
+                        listClaims.put(nc, claim);
+                    }
+                }
+            }
+
+            if (all.isEmpty()) {
+                result.complete(true);
+                return;
+            }
+
+            CompletableFuture.allOf(all.toArray(new CompletableFuture[0]))
+                    .thenRun(() -> result.complete(true))
+                    .exceptionally(ex -> {
+                        ex.printStackTrace();
+                        result.complete(false);
+                        return null;
+                    });
+        });
+
+        return result;
+    }
+
 }
