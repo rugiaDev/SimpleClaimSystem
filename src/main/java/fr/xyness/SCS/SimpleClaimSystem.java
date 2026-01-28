@@ -2180,25 +2180,6 @@ public class SimpleClaimSystem extends JavaPlugin {
     claimGuisInstance.loadGuiSettings();
   }
 
-  public void loadConfig(CommandSender sender) {
-    Runnable task = () -> {
-      try {
-        reloadConfig();
-
-        if (sender != null) {
-          sender.sendMessage(ChatColor.GREEN + "[SCS] config.yml reloaded.");
-        }
-      } catch (Exception e) {
-        if (sender != null) {
-          sender.sendMessage(ChatColor.RED + "[SCS] Failed to reload config.yml. Check console.");
-        }
-        e.printStackTrace();
-      }
-    };
-
-    executeSync(task);
-  }
-
   public void deleteDirectory(File dir) {
     if (dir.exists()) {
       for (File file : dir.listFiles()) {
