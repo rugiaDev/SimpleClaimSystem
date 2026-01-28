@@ -5006,7 +5006,7 @@ public class ClaimMain {
         }
     }
 
-    public CompletableFuture<Boolean> reloadClaimIndexForWorld(String worldName, boolean loadWorldIfMissing) {
+    public CompletableFuture<Boolean> reloadClaimsFromDatabaseForWorld(String worldName) {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
 
         if (worldName == null || worldName.isBlank()) {
@@ -5014,112 +5014,335 @@ public class ClaimMain {
             return result;
         }
 
-        instance.executeSync(() -> {
-            World world = Bukkit.getWorld(worldName);
-            if (world == null && loadWorldIfMissing) {
-                world = Bukkit.createWorld(new WorldCreator(worldName));
-            }
-            if (world == null) {
+        // 1) DB에서 해당 월드 row만 먼저 읽기 (Bukkit API 호출 없음)
+        instance.executeAsync(() -> {
+            List<WorldClaimRow> rows = new ArrayList<>();
+
+            try (Connection connection = instance.getDataSource().getConnection();
+                 PreparedStatement ps = connection.prepareStatement(
+                         "SELECT id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans " +
+                                 "FROM scs_claims_1 WHERE world_name = ?"
+                 )) {
+                ps.setString(1, worldName);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        WorldClaimRow r = new WorldClaimRow();
+                        r.idClaim = rs.getInt("id_claim");
+                        r.ownerUuid = rs.getString("owner_uuid");
+                        r.ownerName = rs.getString("owner_name");
+                        r.claimName = rs.getString("claim_name");
+                        r.claimDescription = rs.getString("claim_description");
+                        r.chunksBase64 = rs.getString("chunks");
+                        r.worldName = rs.getString("world_name");
+                        r.location = rs.getString("location");
+                        r.members = rs.getString("members");
+                        r.permissions = rs.getString("permissions");
+                        r.forSale = rs.getBoolean("for_sale");
+                        r.salePrice = rs.getLong("sale_price");
+                        r.bans = rs.getString("bans");
+                        rows.add(r);
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
                 result.complete(false);
                 return;
             }
 
-            Iterator<Map.Entry<Chunk, Claim>> it = listClaims.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<Chunk, Claim> e = it.next();
-                Chunk k = e.getKey();
-                World kw = (k == null ? null : k.getWorld());
-                if (kw != null && worldName.equals(kw.getName())) {
-                    it.remove();
+            // 2) 월드/청크/메모리 인덱스 조작은 sync에서
+            instance.executeSync(() -> {
+                World world = Bukkit.getWorld(worldName);
+                if (world == null) {
+                    result.complete(false);
+                    return;
                 }
-            }
 
-            Set<Claim> uniqueClaims = ConcurrentHashMap.newKeySet();
-            for (CustomSet<Claim> set : playerClaims.values()) {
-                if (set != null) uniqueClaims.addAll(set);
-            }
+                // (A) 기존 메모리에서 해당 월드 claim 제거 (중복 방지)
+                removeClaimsInMemoryForWorld(worldName);
 
-            List<CompletableFuture<Void>> all = new ArrayList<>();
-
-            for (Claim claim : uniqueClaims) {
-                if (claim == null) continue;
-
-                boolean hasInWorld = false;
-                for (Chunk c : claim.getChunks()) {
-                    World cw = (c == null ? null : c.getWorld());
-                    if (cw != null && worldName.equals(cw.getName())) {
-                        hasInWorld = true;
-                        break;
-                    }
+                if (rows.isEmpty()) {
+                    result.complete(true);
+                    return;
                 }
-                if (!hasInWorld) continue;
 
-                Set<Chunk> newChunks = ConcurrentHashMap.newKeySet();
-                if (instance.isFolia()) {
-                    List<CompletableFuture<Void>> futures = new ArrayList<>();
-                    for (Chunk oldChunk : claim.getChunks()) {
-                        if (oldChunk == null) continue;
+                // (B) 해당 월드 row만 "loadClaims()"와 동일하게 로드
+                List<CompletableFuture<Void>> claimFutures = new ArrayList<>();
 
-                        World cw = oldChunk.getWorld();
-                        if (cw == null || !worldName.equals(cw.getName())) continue;
+                for (WorldClaimRow row : rows) {
+                    // owner uuid
+                    UUID ownerUuid = parseOwnerUuid(row.ownerUuid, row.ownerName);
 
-                        int x = oldChunk.getX();
-                        int z = oldChunk.getZ();
+                    // location
+                    Location loc = parseLocation(world, row.location);
+                    if (loc == null) continue;
 
-                        CompletableFuture<Void> f = world.getChunkAtAsync(x, z)
-                                .thenAccept(newChunks::add)
-                                .exceptionally(ex -> {
-                                    ex.printStackTrace();
-                                    return null;
-                                });
-                        futures.add(f);
+                    // members/bans
+                    CustomSet<UUID> members = parseUuidSet(row.members);
+                    CustomSet<UUID> bans = parseUuidSet(row.bans);
+
+                    // permissions
+                    Map<String, LinkedHashMap<String, Boolean>> perms = parsePermissions(row.permissions);
+                    if (perms == null) continue;
+
+                    // chunks -> 좌표 디코드
+                    List<int[]> coords = decodeChunkCoords(row.chunksBase64);
+                    if (coords.isEmpty()) continue;
+
+                    Set<Chunk> chunks = ConcurrentHashMap.newKeySet();
+
+                    CompletableFuture<Void> chunksFuture;
+                    if (instance.isFolia()) {
+                        List<CompletableFuture<Void>> futures = new ArrayList<>(coords.size());
+                        for (int[] pos : coords) {
+                            int x = pos[0];
+                            int z = pos[1];
+                            futures.add(world.getChunkAtAsync(x, z).thenAccept(chunks::add));
+                        }
+                        chunksFuture = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+                    } else {
+                        for (int[] pos : coords) {
+                            chunks.add(world.getChunkAt(pos[0], pos[1]));
+                        }
+                        chunksFuture = CompletableFuture.completedFuture(null);
                     }
 
-                    CompletableFuture<Void> claimFuture = CompletableFuture
-                            .allOf(futures.toArray(new CompletableFuture[0]))
-                            .thenRun(() -> instance.executeSync(() -> {
-                                // claim 내부 chunks도 새 Chunk 인스턴스로 교체
-                                claim.setChunks(new CustomSet<>(newChunks));
-                                for (Chunk nc : newChunks) {
-                                    listClaims.put(nc, claim);
+                    CompletableFuture<Void> claimFuture = chunksFuture.thenRun(() -> instance.executeSync(() -> {
+                        if (chunks.isEmpty()) return;
+
+                        Claim claim = new Claim(
+                                ownerUuid,
+                                new CustomSet<>(chunks),
+                                row.ownerName,
+                                new CustomSet<>(members),
+                                loc,
+                                row.claimName,
+                                row.claimDescription,
+                                new LinkedHashMap<>(perms),
+                                row.forSale,
+                                row.salePrice,
+                                new CustomSet<>(bans),
+                                row.idClaim
+                        );
+
+                        // listClaims 인덱싱
+                        for (Chunk ck : chunks) {
+                            listClaims.put(ck, claim);
+                        }
+
+                        // playerClaims 인덱싱
+                        playerClaims.computeIfAbsent(ownerUuid, k -> new CustomSet<>()).add(claim);
+
+                        // marker/bossbar/keep-loaded (기존 loadClaims와 동일)
+                        if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(claim);
+                        if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(claim);
+                        if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(claim);
+
+                        instance.getBossBars().activateBossBar(chunks);
+
+                        if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
+                            if (instance.isFolia()) {
+                                for (Chunk ck : chunks) {
+                                    Bukkit.getRegionScheduler().execute(instance, world, ck.getX(), ck.getZ(), () -> ck.setForceLoaded(true));
                                 }
-                            }));
+                            } else {
+                                for (Chunk ck : chunks) {
+                                    ck.setForceLoaded(true);
+                                }
+                            }
+                        }
 
-                    all.add(claimFuture);
-                } else {
-                    for (Chunk oldChunk : claim.getChunks()) {
-                        if (oldChunk == null) continue;
+                        // claim 효과 반영
+                        updateWeatherChunk(claim);
+                        updateFlyChunk(claim);
+                        getMapAutoForChunks(chunks);
+                    }));
 
-                        World cw = oldChunk.getWorld();
-                        if (cw == null || !worldName.equals(cw.getName())) continue;
-
-                        Chunk nc = world.getChunkAt(oldChunk.getX(), oldChunk.getZ());
-                        newChunks.add(nc);
-                    }
-
-                    // claim 내부 chunks 교체 + listClaims 재인덱싱
-                    claim.setChunks(new CustomSet<>(newChunks));
-                    for (Chunk nc : newChunks) {
-                        listClaims.put(nc, claim);
-                    }
+                    claimFutures.add(claimFuture);
                 }
-            }
 
-            if (all.isEmpty()) {
-                result.complete(true);
-                return;
-            }
-
-            CompletableFuture.allOf(all.toArray(new CompletableFuture[0]))
-                    .thenRun(() -> result.complete(true))
-                    .exceptionally(ex -> {
-                        ex.printStackTrace();
-                        result.complete(false);
-                        return null;
-                    });
+                CompletableFuture
+                        .allOf(claimFutures.toArray(new CompletableFuture[0]))
+                        .whenComplete((v, ex) -> {
+                            if (ex != null) ex.printStackTrace();
+                            result.complete(ex == null);
+                        });
+            });
         });
 
         return result;
+    }
+
+    /** ✅ 메모리에서 특정 월드의 claim만 제거 (loadClaims 이후 “월드별 처리”의 역작업) */
+    private void removeClaimsInMemoryForWorld(String worldName) {
+        Map<Claim, Set<Chunk>> byClaim = new HashMap<>();
+
+        for (Map.Entry<Chunk, Claim> e : listClaims.entrySet()) {
+            Chunk ck = e.getKey();
+            Claim cl = e.getValue();
+            if (ck == null || cl == null) continue;
+
+            World w = ck.getWorld();
+            if (w == null) continue;
+            if (!worldName.equals(w.getName())) continue;
+
+            byClaim.computeIfAbsent(cl, k -> new HashSet<>()).add(ck);
+        }
+
+        if (byClaim.isEmpty()) return;
+
+        for (Map.Entry<Claim, Set<Chunk>> e : byClaim.entrySet()) {
+            Claim claim = e.getKey();
+            Set<Chunk> chunks = e.getValue();
+            if (claim == null || chunks == null || chunks.isEmpty()) continue;
+
+            // bossbar/marker 정리
+            instance.getBossBars().deactivateBossBar(chunks);
+            if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().deleteMarker(chunks);
+            if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().deleteMarker(chunks);
+            if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().deleteMarker(chunks);
+
+            // listClaims에서 제거
+            for (Chunk ck : chunks) {
+                listClaims.remove(ck);
+            }
+
+            // claim 내부 chunks에서도 해당 월드 chunk 제거
+            CustomSet<Chunk> updated = new CustomSet<>(claim.getChunks());
+            updated.removeIf(ch -> ch != null && ch.getWorld() != null && worldName.equals(ch.getWorld().getName()));
+            claim.setChunks(updated);
+
+            // playerClaims에서 claim 제거
+            UUID ownerUuid = claim.getUUID();
+            CustomSet<Claim> set = playerClaims.get(ownerUuid);
+            if (set != null) {
+                set.remove(claim);
+                if (set.isEmpty()) playerClaims.remove(ownerUuid);
+            }
+        }
+    }
+
+    private UUID parseOwnerUuid(String ownerUuidStr, String ownerName) {
+        if (ownerName != null && ownerName.equals("*")) return SERVER_UUID;
+        if (ownerUuidStr == null || ownerUuidStr.isBlank()) return SERVER_UUID;
+        if (ownerUuidStr.equals("none") || ownerUuidStr.equals("aucun")) return SERVER_UUID;
+        try {
+            return UUID.fromString(ownerUuidStr);
+        } catch (IllegalArgumentException e) {
+            return SERVER_UUID;
+        }
+    }
+
+    private Location parseLocation(World world, String locationString) {
+        if (world == null) return null;
+        if (locationString == null || locationString.isBlank()) return null;
+
+        String[] parts = locationString.split(";");
+        if (parts.length < 5) return null;
+
+        try {
+            double x = Double.parseDouble(parts[0]);
+            double y = Double.parseDouble(parts[1]);
+            double z = Double.parseDouble(parts[2]);
+            float yaw = (float) Double.parseDouble(parts[3]);
+            float pitch = (float) Double.parseDouble(parts[4]);
+            return new Location(world, x, y, z, yaw, pitch);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private CustomSet<UUID> parseUuidSet(String s) {
+        CustomSet<UUID> out = new CustomSet<>();
+        if (s == null || s.isBlank()) return out;
+
+        String[] parts = s.split(";");
+        for (String p : parts) {
+            if (p == null || p.isBlank()) continue;
+            try {
+                out.add(UUID.fromString(p));
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return out;
+    }
+
+    /** permissions 컬럼을 loadClaims 로직과 동일하게 파싱 */
+    private Map<String, LinkedHashMap<String, Boolean>> parsePermissions(String permissionsString) {
+        if (permissionsString == null || permissionsString.isBlank()) return null;
+
+        String[] parts = permissionsString.split(";");
+        if (parts.length != 3) return null;
+
+        Map<String, String> permList = new HashMap<>();
+        for (String s : parts) {
+            String[] kv = s.split(":");
+            if (kv.length != 2) continue;
+            permList.put(kv[0], kv[1]);
+        }
+        if (permList.isEmpty()) return null;
+
+        Map<String, LinkedHashMap<String, Boolean>> perms = new HashMap<>();
+        for (Map.Entry<String, String> entry : permList.entrySet()) {
+            String role = entry.getKey();
+            String code = entry.getValue();
+
+            LinkedHashMap<String, Boolean> permValue = new LinkedHashMap<>();
+            int idx = 0;
+
+            // 여기 구조는 loadClaims()와 동일하게 "defaultValues().get(role).keySet()" 순서를 신뢰
+            Map<String, Boolean> defaults = instance.getSettings().getDefaultValues().get(role);
+            if (defaults == null) return null;
+
+            for (String permKey : defaults.keySet()) {
+                if (idx >= code.length()) return null;
+                permValue.put(permKey, code.charAt(idx) == '1');
+                idx++;
+            }
+            perms.put(role, permValue);
+        }
+
+        return perms;
+    }
+
+    private List<int[]> decodeChunkCoords(String chunksBase64) {
+        if (chunksBase64 == null || chunksBase64.isBlank()) return Collections.emptyList();
+
+        List<int[]> coords = new ArrayList<>();
+        try {
+            byte[] data = Base64.getDecoder().decode(chunksBase64);
+            try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data))) {
+                while (true) {
+                    try {
+                        int x = in.readInt();
+                        int z = in.readInt();
+                        coords.add(new int[]{x, z});
+                    } catch (EOFException eof) {
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+        return coords;
+    }
+
+    private static final class WorldClaimRow {
+        int idClaim;
+        String ownerUuid;
+        String ownerName;
+        String claimName;
+        String claimDescription;
+        String chunksBase64;
+        String worldName;
+        String location;
+        String members;
+        String permissions;
+        boolean forSale;
+        long salePrice;
+        String bans;
     }
 
 }
