@@ -1235,9 +1235,12 @@ public class ClaimMain {
                     String claim_name = rs.getString("claim_name");
                     String claim_description = rs.getString("claim_description");
                     String world_name = rs.getString("World");
-                    World check_world = Bukkit.getWorld(world_name);
-                    World world = check_world == null ? Bukkit.createWorld(new WorldCreator(world_name)) : check_world;
-                    if (world == null) continue;
+                    World world = Bukkit.getWorld(world_name);
+                    if (world == null) {
+                        // 언로드/없음 -> 로드하지 않고 스킵
+                        continue;
+                    }
+
                     String location = rs.getString("Location");
                     String members = rs.getString("Members");
                     String permissions = instance.getSettings().getDefaultValuesCode("all");
@@ -1523,6 +1526,19 @@ public class ClaimMain {
                 int id = findFreeId(uuid_owner);
                 String world_name = config.getString(key + ".world");
                 World world = Bukkit.getWorld(world_name);
+
+                if (world == null) {
+                    File dir = new File(Bukkit.getWorldContainer(), world_name);
+                    boolean hasLevelDat = new File(dir, "level.dat").isFile();
+
+                    if (hasLevelDat) {
+                        instance.getLogger().warning("XClaims import skipped: world is unloaded (exists on disk): " + world_name + " (claimKey=" + key + ")");
+                    } else {
+                        instance.getLogger().warning("XClaims import skipped: world data not found on disk: " + world_name + " (claimKey=" + key + ")");
+                    }
+                    continue;
+                }
+
                 ConfigurationSection userSection = config.getConfigurationSection(key + ".users");
                 Set<String> list_users = userSection.getKeys(false);
                 list_users.add(owner_name);
@@ -1987,12 +2003,21 @@ public class ClaimMain {
 
                         // World data
                         String world_name = resultSet.getString("world_name");
-                        World check_world = Bukkit.getWorld(world_name);
-                        World world = check_world == null ? Bukkit.createWorld(new WorldCreator(world_name)) : check_world;
+                        World world = Bukkit.getWorld(world_name);
                         if (world == null) {
-                            instance.info("Error when loading world, id claim: " + String.valueOf(id));
+                            // ✅ 언로드/존재여부 판단(폴더 존재 = 언로드로 간주, 폴더도 없으면 진짜 없음 가능성)
+                            File wc = Bukkit.getWorldContainer();
+                            File dir = new File(wc, world_name);
+                            boolean hasLevelDat = new File(dir, "level.dat").isFile();
+
+                            if (hasLevelDat) {
+                                instance.info("World is unloaded (exists on disk). Skipping claim load: " + world_name + " (id_claim=" + id + ")");
+                            } else {
+                                instance.info("World data not found on disk. Skipping claim load: " + world_name + " (id_claim=" + id + ")");
+                            }
                             continue;
                         }
+
 
                         // Location data
                         String[] parts = resultSet.getString("location").split(";");
