@@ -58,10 +58,13 @@ public class ClaimMain {
 
 
     /** List of claims by chunk. */
-    private Map<Chunk, Claim> listClaims = new HashMap<>();
+    private final Map<Chunk, Claim> listClaims = new ConcurrentHashMap<>();
 
     /** Mapping of player uuid to their claims. */
-    private Map<UUID, CustomSet<Claim>> playerClaims = new ConcurrentHashMap<>();
+    private final Map<UUID, CustomSet<Claim>> playerClaims = new ConcurrentHashMap<>();
+
+    private final ConcurrentHashMap<String, Object> worldReloadLocks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Object> claimLocks = new ConcurrentHashMap<>();
 
     /** Key UUID for protected areas */
     public static final UUID SERVER_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
@@ -1481,12 +1484,12 @@ public class ClaimMain {
                             }
 
                             CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-                            allOf.thenRun(() -> {
-                                task.run();
-                            }).exceptionally(ex -> {
+                            allOf.thenRun(() -> instance.executeSync(task))
+                            .exceptionally(ex -> {
                                 ex.printStackTrace();
                                 return null;
                             });
+
                         } else {
                             while (xIterator.hasNext() && zIterator.hasNext()) {
                                 int x = xIterator.next();
@@ -1593,9 +1596,8 @@ public class ClaimMain {
                 }
 
                 CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-                allOf.thenRun(() -> {
-                    task.run();
-                }).exceptionally(ex -> {
+                allOf.thenRun(() -> instance.executeSync(task))
+                .exceptionally(ex -> {
                     ex.printStackTrace();
                     return null;
                 });
@@ -2170,12 +2172,12 @@ public class ClaimMain {
                         }
 
                         CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-                        allOf.thenRun(() -> {
-                            task.run();
-                        }).exceptionally(ex -> {
-                            ex.printStackTrace();
-                            return null;
-                        });
+                        allOf.thenRun(() -> instance.executeSync(task))
+                                .exceptionally(ex -> {
+                                    ex.printStackTrace();
+                                    return null;
+                                });
+
                     }
                 }
             } catch (SQLException e) {
@@ -2200,52 +2202,153 @@ public class ClaimMain {
     public CompletableFuture<Boolean> createClaim(Player player, Chunk chunk) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                // Get data
-                String playerName = player.getName();
-                UUID playerId = player.getUniqueId();
-                CPlayer cPlayer = instance.getPlayerMain().getCPlayer(playerId);
+                if (player == null || chunk == null) return false;
 
-                // Update player claims count
-                cPlayer.setClaimsCount(cPlayer.getClaimsCount() + 1);
+                final String worldName = chunk.getWorld().getName();
+                final int cx = chunk.getX();
+                final int cz = chunk.getZ();
+                final String lockKey = worldName + ";" + cx + ";" + cz;
 
-                // Create default values, name, loc, perms and Claim
-                int id = findFreeId(playerId);
-                String uuid = playerId.toString();
-                String claimName = "claim-" + String.valueOf(id);
-                String description = instance.getLanguage().getMessage("default-description");
-                String locationString = getLocationString(player.getLocation());
-                Map<String,LinkedHashMap<String, Boolean>> perms = new HashMap<>(instance.getSettings().getDefaultValues());
-                Claim newClaim = new Claim(playerId, new CustomSet<>(Set.of(chunk)), playerName, new CustomSet<>(Set.of(playerId)), player.getLocation(), claimName, description, new HashMap<>(perms), false, 0, new CustomSet<>(),id);
+                // 1) Chunk 단위 락으로 "중복 점유" 원천 차단
+                final Object lock = claimLocks.computeIfAbsent(lockKey, k -> new Object());
 
-                // Add claim to claims list and player claims list
-                listClaims.put(chunk, newClaim);
-                playerClaims.computeIfAbsent(player.getUniqueId(), k -> new CustomSet<>()).add(newClaim);
+                final CompletableFuture<Claim> createdFuture = new CompletableFuture<>();
 
-                // Create bossbars and maps
-                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
-                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
-                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
-                if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
-                    if(instance.isFolia()) {
-                        Bukkit.getRegionScheduler().execute(instance, chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> chunk.setForceLoaded(true));
-                    } else {
-                        Bukkit.getScheduler().callSyncMethod(instance, (Callable<Void>) () -> {
-                            chunk.setForceLoaded(true);
-                            return null;
-                        });
-                    }
+                synchronized (lock) {
+                    // 2) 캐시 변경은 무조건 sync(메인/리전)에서만
+                    instance.executeSync(() -> {
+                        // 이미 점유됐으면 실패
+                        if (listClaims.containsKey(chunk)) {
+                            createdFuture.complete(null);
+                            return;
+                        }
+
+                        // 데이터 스냅샷
+                        final String playerName = player.getName();
+                        final UUID playerId = player.getUniqueId();
+                        final CPlayer cPlayer = instance.getPlayerMain().getCPlayer(playerId);
+                        if (cPlayer == null) {
+                            createdFuture.complete(null);
+                            return;
+                        }
+
+                        // Claim 생성
+                        final int id = findFreeId(playerId);
+                        final String claimName = "claim-" + id;
+                        final String description = instance.getLanguage().getMessage("default-description");
+                        final String locationString = getLocationString(player.getLocation());
+
+                        final Map<String, LinkedHashMap<String, Boolean>> perms =
+                                new HashMap<>(instance.getSettings().getDefaultValues());
+
+                        final Claim newClaim = new Claim(
+                                playerId,
+                                new CustomSet<>(Set.of(chunk)),
+                                playerName,
+                                new CustomSet<>(Set.of(playerId)),
+                                player.getLocation().clone(),
+                                claimName,
+                                description,
+                                new HashMap<>(perms),
+                                false,
+                                0,
+                                new CustomSet<>(),
+                                id
+                        );
+
+                        // ✅ 캐시 반영 (sync)
+                        listClaims.put(chunk, newClaim);
+                        playerClaims.computeIfAbsent(playerId, k -> new CustomSet<>()).add(newClaim);
+
+                        // ✅ 이 아래 Bukkit/맵/보스바도 sync에서만
+                        cPlayer.setClaimsCount(cPlayer.getClaimsCount() + 1);
+
+                        if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
+                        if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
+                        if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
+
+                        if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
+                            if (instance.isFolia()) {
+                                Bukkit.getRegionScheduler().execute(instance, chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> chunk.setForceLoaded(true));
+                            } else {
+                                chunk.setForceLoaded(true);
+                            }
+                        }
+
+                        instance.getBossBars().activateBossBar(chunk);
+                        getMapAutoForChunks(Set.of(chunk));
+                        updateWeatherChunk(newClaim);
+                        updateFlyChunk(newClaim);
+
+                        // 이벤트도 sync
+                        final ClaimCreateEvent event = new ClaimCreateEvent(newClaim);
+                        Bukkit.getPluginManager().callEvent(event);
+
+                        // DB 저장에 필요한 값(Claim 자체를 넘겨도 되지만, 여기선 Claim만 넘김)
+                        createdFuture.complete(newClaim);
+                    });
+
+                    // 락 키 정리(메모리 누수 방지)
+                    // - createdFuture가 null이든 아니든 lockKey는 재생성 가능하므로 제거
+                    claimLocks.remove(lockKey, lock);
                 }
-                instance.executeSync(() -> instance.getBossBars().activateBossBar(chunk));
-                getMapAutoForChunks(Set.of(chunk));
-                updateWeatherChunk(newClaim);
-                updateFlyChunk(newClaim);
 
-                // Call event
-                ClaimCreateEvent event = new ClaimCreateEvent(newClaim);
-                instance.executeSync(() -> Bukkit.getPluginManager().callEvent(event));
+                final Claim created = createdFuture.join();
+                if (created == null) return false;
 
-                // Update database
-                return insertClaimIntoDatabase(id, uuid, playerName, claimName, description, chunk, locationString);
+                // 3) DB insert는 async에서 실행
+                final UUID ownerUuid = created.getUUID();
+                final String uuidStr = ownerUuid.toString();
+                final String ownerName = created.getOwner();
+                final String claimName = created.getName();
+                final String desc = created.getDescription();
+                final String locStr = getLocationString(created.getLocation());
+                final String chunksData = serializeChunks(Set.of(chunk));
+
+                boolean dbOk;
+                try (Connection connection = instance.getDataSource().getConnection();
+                     PreparedStatement stmt = connection.prepareStatement(
+                             "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) " +
+                                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                     )) {
+                    stmt.setInt(1, created.getId());
+                    stmt.setString(2, uuidStr);
+                    stmt.setString(3, ownerName);
+                    stmt.setString(4, claimName);
+                    stmt.setString(5, desc);
+                    stmt.setString(6, chunksData);
+                    stmt.setString(7, worldName);
+                    stmt.setString(8, locStr);
+                    stmt.setString(9, uuidStr);
+                    stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
+                    stmt.setString(11, "");
+                    stmt.executeUpdate();
+                    dbOk = true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    dbOk = false;
+                }
+
+                // 4) DB 실패 시 롤백(캐시/보스바/맵)도 sync에서
+                if (!dbOk) {
+                    instance.executeSync(() -> {
+                        listClaims.remove(chunk);
+                        CustomSet<Claim> set = playerClaims.get(ownerUuid);
+                        if (set != null) {
+                            set.remove(created);
+                            if (set.isEmpty()) playerClaims.remove(ownerUuid);
+                        }
+                        instance.getBossBars().deactivateBossBar(Set.of(chunk));
+                        if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().deleteMarker(Set.of(chunk));
+                        if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().deleteMarker(Set.of(chunk));
+                        if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().deleteMarker(Set.of(chunk));
+                        resetWeatherChunk(created);
+                        resetFlyChunk(created);
+                        getMapAutoForChunks(Set.of(chunk));
+                    });
+                }
+
+                return dbOk;
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -4441,7 +4544,9 @@ public class ClaimMain {
             // Wait for all async chunk loads to complete
             CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
             allOf.thenRun(() -> {
-                resultFuture.complete(locations);
+                // CustomSet/비동기 add가 섞일 수 있으니 스냅샷으로 고정
+                Set<Location> snapshot = new HashSet<>(locations);
+                resultFuture.complete(snapshot);
             }).exceptionally(ex -> {
                 ex.printStackTrace();
                 resultFuture.completeExceptionally(ex);
@@ -5040,307 +5145,364 @@ public class ClaimMain {
         }
 
         instance.executeAsync(() -> {
-            final List<Object[]> rows = new ArrayList<>();
+            // ✅ 월드별 in-flight 락 (중복 reload 방지)
+            final Object lock = worldReloadLocks.computeIfAbsent(worldName, k -> new Object());
+            synchronized (lock) {
+                try {
+                    // 1) DB에서 해당 월드 claims rows 읽기 (Async thread)
+                    final List<Object[]> rows = new ArrayList<>();
 
-            try (final Connection connection = instance.getDataSource().getConnection();
-                 final PreparedStatement ps = connection.prepareStatement(
-                         "SELECT id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, location, members, permissions, for_sale, sale_price, bans " +
-                                 "FROM scs_claims_1 WHERE world_name = ?"
-                 )) {
+                    try (final Connection connection = instance.getDataSource().getConnection();
+                         final PreparedStatement ps = connection.prepareStatement(
+                                 "SELECT id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, location, members, permissions, for_sale, sale_price, bans " +
+                                         "FROM scs_claims_1 WHERE world_name = ?"
+                         )) {
 
-                ps.setString(1, worldName);
+                        ps.setString(1, worldName);
 
-                try (final ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        rows.add(new Object[]{
-                                rs.getInt("id_claim"),
-                                rs.getString("owner_uuid"),
-                                rs.getString("owner_name"),
-                                rs.getString("claim_name"),
-                                rs.getString("claim_description"),
-                                rs.getString("chunks"),
-                                rs.getString("location"),
-                                rs.getString("members"),
-                                rs.getString("permissions"),
-                                rs.getBoolean("for_sale"),
-                                rs.getLong("sale_price"),
-                                rs.getString("bans")
-                        });
+                        try (final ResultSet rs = ps.executeQuery()) {
+                            while (rs.next()) {
+                                rows.add(new Object[]{
+                                        rs.getInt("id_claim"),
+                                        rs.getString("owner_uuid"),
+                                        rs.getString("owner_name"),
+                                        rs.getString("claim_name"),
+                                        rs.getString("claim_description"),
+                                        rs.getString("chunks"),
+                                        rs.getString("location"),
+                                        rs.getString("members"),
+                                        rs.getString("permissions"),
+                                        rs.getBoolean("for_sale"),
+                                        rs.getLong("sale_price"),
+                                        rs.getString("bans")
+                                });
+                            }
+                        }
+
+                    } catch (final SQLException e) {
+                        e.printStackTrace();
+                        result.complete(false);
+                        return;
                     }
-                }
 
-            } catch (final SQLException e) {
-                e.printStackTrace();
-                result.complete(false);
-                return;
-            }
+                    // 2) Sync: 월드 존재 확인 + 기존 캐시(해당 월드) 제거/정리
+                    final CompletableFuture<World> worldFuture = new CompletableFuture<>();
+                    instance.executeSync(() -> {
+                        final World w = Bukkit.getWorld(worldName);
+                        worldFuture.complete(w);
+                    });
 
-            instance.executeSync(() -> {
-                final World world = Bukkit.getWorld(worldName);
-                if (world == null) {
-                    result.complete(false);
-                    return;
-                }
-
-                final Map<Claim, Set<Chunk>> byClaim = new HashMap<>();
-                for (final Map.Entry<Chunk, Claim> e : listClaims.entrySet()) {
-                    final Chunk ck = e.getKey();
-                    final Claim cl = e.getValue();
-                    if (ck == null || cl == null) continue;
-
-                    final World w = ck.getWorld();
-                    if (w == null) continue;
-                    if (!worldName.equals(w.getName())) continue;
-
-                    byClaim.computeIfAbsent(cl, k -> new HashSet<>()).add(ck);
-                }
-
-                if (!byClaim.isEmpty()) {
-                    for (final Map.Entry<Claim, Set<Chunk>> e : byClaim.entrySet()) {
-                        final Claim claim = e.getKey();
-                        final Set<Chunk> chunks = e.getValue();
-                        if (claim == null || chunks == null || chunks.isEmpty()) continue;
-
-                        instance.getBossBars().deactivateBossBar(chunks);
-
-                        if (instance.getSettings().getBooleanSetting("dynmap") && instance.getDynmap() != null) {
-                            instance.getDynmap().deleteMarker(chunks);
-                        }
-                        if (instance.getSettings().getBooleanSetting("bluemap") && instance.getBluemap() != null) {
-                            instance.getBluemap().deleteMarker(chunks);
-                        }
-                        if (instance.getSettings().getBooleanSetting("pl3xmap") && instance.getPl3xMap() != null) {
-                            instance.getPl3xMap().deleteMarker(chunks);
-                        }
-
-                        for (final Chunk ck : chunks) {
-                            listClaims.remove(ck);
-                        }
-
-                        final CustomSet<Chunk> updatedChunks = new CustomSet<>(claim.getChunks());
-                        updatedChunks.removeIf(ch -> ch == null || ch.getWorld() == null || worldName.equals(ch.getWorld().getName()));
-                        claim.setChunks(updatedChunks);
-
-                        final UUID ownerUuid = claim.getUUID();
-                        final CustomSet<Claim> set = playerClaims.get(ownerUuid);
-                        if (set != null) {
-                            set.remove(claim);
-                            if (set.isEmpty()) playerClaims.remove(ownerUuid);
-                        }
+                    final World world = worldFuture.join();
+                    if (world == null) {
+                        result.complete(false);
+                        return;
                     }
-                }
 
-                if (rows.isEmpty()) {
-                    result.complete(true);
-                    return;
-                }
+                    instance.executeSync(() -> {
+                        // 해당 월드의 Chunk key 목록 수집
+                        final List<Chunk> keysToRemove = new ArrayList<>();
+                        for (final Map.Entry<Chunk, Claim> e : listClaims.entrySet()) {
+                            final Chunk ck = e.getKey();
+                            if (ck == null) continue;
+                            final World cw = ck.getWorld();
+                            if (cw == null) continue;
+                            if (worldName.equals(cw.getName())) {
+                                keysToRemove.add(ck);
+                            }
+                        }
 
-                final List<CompletableFuture<Void>> claimFutures = new ArrayList<>(rows.size());
+                        if (!keysToRemove.isEmpty()) {
+                            // Claim별로 묶어서 bossbar/맵 마커 정리
+                            final Map<Claim, Set<Chunk>> byClaim = new HashMap<>();
+                            for (final Chunk ck : keysToRemove) {
+                                final Claim cl = listClaims.get(ck);
+                                if (cl == null) continue;
+                                byClaim.computeIfAbsent(cl, k -> new HashSet<>()).add(ck);
+                            }
 
-                for (final Object[] row : rows) {
-                    final int idClaim = (Integer) row[0];
-                    final String ownerUuidStr = (String) row[1];
-                    final String ownerName = (String) row[2];
-                    final String claimName = (String) row[3];
-                    final String claimDesc = (String) row[4];
-                    final String chunksBase64 = (String) row[5];
-                    final String locationString = (String) row[6];
-                    final String membersString = (String) row[7];
-                    final String permissionsString = (String) row[8];
-                    final boolean forSale = (Boolean) row[9];
-                    final long salePrice = (Long) row[10];
-                    final String bansString = (String) row[11];
+                            for (final Map.Entry<Claim, Set<Chunk>> entry : byClaim.entrySet()) {
+                                final Claim claim = entry.getKey();
+                                final Set<Chunk> chunks = entry.getValue();
+                                if (claim == null || chunks == null || chunks.isEmpty()) continue;
 
-                    final UUID ownerUuid;
-                    if ("*".equals(ownerName)) {
-                        ownerUuid = SERVER_UUID;
-                    } else if (ownerUuidStr == null || ownerUuidStr.isBlank() || "none".equals(ownerUuidStr) || "aucun".equals(ownerUuidStr)) {
-                        ownerUuid = SERVER_UUID;
-                    } else {
-                        UUID parsed;
+                                // bossbar/markers 제거
+                                instance.getBossBars().deactivateBossBar(chunks);
+
+                                if (instance.getSettings().getBooleanSetting("dynmap") && instance.getDynmap() != null) {
+                                    instance.getDynmap().deleteMarker(chunks);
+                                }
+                                if (instance.getSettings().getBooleanSetting("bluemap") && instance.getBluemap() != null) {
+                                    instance.getBluemap().deleteMarker(chunks);
+                                }
+                                if (instance.getSettings().getBooleanSetting("pl3xmap") && instance.getPl3xMap() != null) {
+                                    instance.getPl3xMap().deleteMarker(chunks);
+                                }
+
+                                // listClaims에서 제거
+                                for (final Chunk ck : chunks) {
+                                    listClaims.remove(ck);
+                                }
+
+                                // claim 객체 chunks에서도 해당 월드 chunk들 제거
+                                final CustomSet<Chunk> updated = new CustomSet<>(claim.getChunks());
+                                updated.removeIf(ch -> ch == null || ch.getWorld() == null || worldName.equals(ch.getWorld().getName()));
+                                claim.setChunks(updated);
+
+                                // owner set에서도 claim 제거(해당 월드 chunks가 빠져 claim이 비었으면 제거)
+                                if (updated.isEmpty()) {
+                                    final UUID ownerUuid = claim.getUUID();
+                                    final CustomSet<Claim> set = playerClaims.get(ownerUuid);
+                                    if (set != null) {
+                                        set.remove(claim);
+                                        if (set.isEmpty()) playerClaims.remove(ownerUuid);
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // 3) 로드할 row가 없으면 끝(정리만 하고 성공)
+                    if (rows.isEmpty()) {
+                        result.complete(true);
+                        return;
+                    }
+
+                    // 4) rows → Claim 객체 로드(Chunk 로드 완료 후 Sync에서 캐시 반영)
+                    final List<CompletableFuture<Void>> claimFutures = new ArrayList<>(rows.size());
+
+                    for (final Object[] row : rows) {
+                        final int idClaim = (Integer) row[0];
+                        final String ownerUuidStr = (String) row[1];
+                        final String ownerName = (String) row[2];
+                        final String claimName = (String) row[3];
+                        final String claimDesc = (String) row[4];
+                        final String chunksBase64 = (String) row[5];
+                        final String locationString = (String) row[6];
+                        final String membersString = (String) row[7];
+                        final String permissionsString = (String) row[8];
+                        final boolean forSale = (Boolean) row[9];
+                        final long salePrice = (Long) row[10];
+                        final String bansString = (String) row[11];
+
+                        // owner uuid 파싱
+                        final UUID ownerUuid;
+                        if ("*".equals(ownerName)) {
+                            ownerUuid = SERVER_UUID;
+                        } else if (ownerUuidStr == null || ownerUuidStr.isBlank() || "none".equals(ownerUuidStr) || "aucun".equals(ownerUuidStr)) {
+                            ownerUuid = SERVER_UUID;
+                        } else {
+                            UUID parsed;
+                            try {
+                                parsed = UUID.fromString(ownerUuidStr);
+                            } catch (final IllegalArgumentException ex) {
+                                parsed = SERVER_UUID;
+                            }
+                            ownerUuid = parsed;
+                        }
+
+                        // location 파싱
+                        if (locationString == null || locationString.isBlank()) continue;
+                        final String[] locParts = locationString.split(";");
+                        if (locParts.length < 5) continue;
+
+                        final Location loc;
                         try {
-                            parsed = UUID.fromString(ownerUuidStr);
-                        } catch (final IllegalArgumentException ex) {
-                            parsed = SERVER_UUID;
-                        }
-                        ownerUuid = parsed;
-                    }
-
-                    if (locationString == null || locationString.isBlank()) continue;
-                    final String[] locParts = locationString.split(";");
-                    if (locParts.length < 5) continue;
-
-                    final Location loc;
-                    try {
-                        final double x = Double.parseDouble(locParts[0]);
-                        final double y = Double.parseDouble(locParts[1]);
-                        final double z = Double.parseDouble(locParts[2]);
-                        final float yaw = (float) Double.parseDouble(locParts[3]);
-                        final float pitch = (float) Double.parseDouble(locParts[4]);
-                        loc = new Location(world, x, y, z, yaw, pitch);
-                    } catch (final NumberFormatException ex) {
-                        continue;
-                    }
-
-                    final CustomSet<UUID> members = new CustomSet<>();
-                    if (membersString != null && !membersString.isBlank()) {
-                        final String[] parts = membersString.split(";");
-                        for (final String p : parts) {
-                            if (p == null || p.isBlank()) continue;
-                            try { members.add(UUID.fromString(p)); } catch (final IllegalArgumentException ignore) {}
-                        }
-                    }
-
-                    final CustomSet<UUID> bans = new CustomSet<>();
-                    if (bansString != null && !bansString.isBlank()) {
-                        final String[] parts = bansString.split(";");
-                        for (final String p : parts) {
-                            if (p == null || p.isBlank()) continue;
-                            try { bans.add(UUID.fromString(p)); } catch (final IllegalArgumentException ignore) {}
-                        }
-                    }
-
-                    if (permissionsString == null || permissionsString.isBlank()) continue;
-                    final String[] permParts = permissionsString.split(";");
-                    if (permParts.length != 3) continue;
-
-                    final Map<String, String> permCodeByRole = new HashMap<>();
-                    for (final String s : permParts) {
-                        final String[] kv = s.split(":");
-                        if (kv.length != 2) continue;
-                        permCodeByRole.put(kv[0], kv[1]);
-                    }
-                    if (permCodeByRole.isEmpty()) continue;
-
-                    final Map<String, LinkedHashMap<String, Boolean>> perms = new HashMap<>();
-                    boolean permsOk = true;
-
-                    for (final Map.Entry<String, String> pe : permCodeByRole.entrySet()) {
-                        final String role = pe.getKey();
-                        final String code = pe.getValue();
-
-                        final Map<String, Boolean> defaults = instance.getSettings().getDefaultValues().get(role);
-                        if (defaults == null) { permsOk = false; break; }
-
-                        final LinkedHashMap<String, Boolean> permValue = new LinkedHashMap<>();
-                        int idx = 0;
-
-                        for (final String permKey : defaults.keySet()) {
-                            if (idx >= code.length()) { permsOk = false; break; }
-                            permValue.put(permKey, code.charAt(idx) == '1');
-                            idx++;
-                        }
-                        if (!permsOk) break;
-
-                        perms.put(role, permValue);
-                    }
-
-                    if (!permsOk) continue;
-
-                    if (chunksBase64 == null || chunksBase64.isBlank()) continue;
-
-                    final List<int[]> coords = new ArrayList<>();
-                    try {
-                        final byte[] data = Base64.getDecoder().decode(chunksBase64);
-                        try (final ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data))) {
-                            while (true) {
-                                try {
-                                    final int cx = in.readInt();
-                                    final int cz = in.readInt();
-                                    coords.add(new int[]{cx, cz});
-                                } catch (final EOFException eof) {
-                                    break;
-                                }
-                            }
-                        }
-                    } catch (final Exception ex) {
-                        continue;
-                    }
-                    if (coords.isEmpty()) continue;
-
-                    final Set<Chunk> chunks = ConcurrentHashMap.newKeySet();
-
-                    final CompletableFuture<Void> chunksFuture;
-                    if (instance.isFolia()) {
-                        final List<CompletableFuture<Void>> futures = new ArrayList<>(coords.size());
-                        for (final int[] pos : coords) {
-                            futures.add(world.getChunkAtAsync(pos[0], pos[1]).thenAccept(chunks::add));
-                        }
-                        chunksFuture = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-                    } else {
-                        for (final int[] pos : coords) {
-                            chunks.add(world.getChunkAt(pos[0], pos[1]));
-                        }
-                        chunksFuture = CompletableFuture.completedFuture(null);
-                    }
-
-                    final UUID ownerUuidFinal = ownerUuid;
-                    final Location locFinal = loc;
-                    final CustomSet<UUID> membersFinal = members;
-                    final CustomSet<UUID> bansFinal = bans;
-                    final Map<String, LinkedHashMap<String, Boolean>> permsFinal = perms;
-
-                    final CompletableFuture<Void> claimFuture = chunksFuture.thenRun(() -> instance.executeSync(() -> {
-                        if (chunks.isEmpty()) return;
-
-                        final Claim claim = new Claim(
-                                ownerUuidFinal,
-                                new CustomSet<>(chunks),
-                                ownerName,
-                                new CustomSet<>(membersFinal),
-                                locFinal,
-                                claimName,
-                                claimDesc,
-                                new LinkedHashMap<>(permsFinal),
-                                forSale,
-                                salePrice,
-                                new CustomSet<>(bansFinal),
-                                idClaim
-                        );
-
-                        for (final Chunk ck : chunks) {
-                            listClaims.put(ck, claim);
-                        }
-                        playerClaims.computeIfAbsent(ownerUuidFinal, k -> new CustomSet<>()).add(claim);
-
-                        if (instance.getSettings().getBooleanSetting("dynmap") && instance.getDynmap() != null) {
-                            instance.getDynmap().createClaimZone(claim);
-                        }
-                        if (instance.getSettings().getBooleanSetting("bluemap") && instance.getBluemap() != null) {
-                            instance.getBluemap().createClaimZone(claim);
-                        }
-                        if (instance.getSettings().getBooleanSetting("pl3xmap") && instance.getPl3xMap() != null) {
-                            instance.getPl3xMap().createClaimZone(claim);
+                            final double x = Double.parseDouble(locParts[0]);
+                            final double y = Double.parseDouble(locParts[1]);
+                            final double z = Double.parseDouble(locParts[2]);
+                            final float yaw = (float) Double.parseDouble(locParts[3]);
+                            final float pitch = (float) Double.parseDouble(locParts[4]);
+                            loc = new Location(world, x, y, z, yaw, pitch);
+                        } catch (final NumberFormatException ex) {
+                            continue;
                         }
 
-                        instance.getBossBars().activateBossBar(chunks);
-
-                        if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
-                            if (instance.isFolia()) {
-                                for (final Chunk ck : chunks) {
-                                    Bukkit.getRegionScheduler().execute(instance, world, ck.getX(), ck.getZ(), () -> ck.setForceLoaded(true));
-                                }
-                            } else {
-                                for (final Chunk ck : chunks) {
-                                    ck.setForceLoaded(true);
-                                }
+                        // members/bans 파싱
+                        final CustomSet<UUID> members = new CustomSet<>();
+                        if (membersString != null && !membersString.isBlank()) {
+                            final String[] parts = membersString.split(";");
+                            for (final String p : parts) {
+                                if (p == null || p.isBlank()) continue;
+                                try { members.add(UUID.fromString(p)); } catch (final IllegalArgumentException ignore) {}
                             }
                         }
 
-                        updateWeatherChunk(claim);
-                        updateFlyChunk(claim);
-                        getMapAutoForChunks(chunks);
-                    }));
+                        final CustomSet<UUID> bans = new CustomSet<>();
+                        if (bansString != null && !bansString.isBlank()) {
+                            final String[] parts = bansString.split(";");
+                            for (final String p : parts) {
+                                if (p == null || p.isBlank()) continue;
+                                try { bans.add(UUID.fromString(p)); } catch (final IllegalArgumentException ignore) {}
+                            }
+                        }
 
-                    claimFutures.add(claimFuture);
+                        // permissions 파싱(roles 3개 가정)
+                        if (permissionsString == null || permissionsString.isBlank()) continue;
+                        final String[] permParts = permissionsString.split(";");
+                        if (permParts.length != 3) continue;
+
+                        final Map<String, String> permCodeByRole = new HashMap<>();
+                        for (final String s : permParts) {
+                            final String[] kv = s.split(":");
+                            if (kv.length != 2) continue;
+                            permCodeByRole.put(kv[0], kv[1]);
+                        }
+                        if (permCodeByRole.isEmpty()) continue;
+
+                        final Map<String, LinkedHashMap<String, Boolean>> perms = new HashMap<>();
+                        boolean permsOk = true;
+
+                        for (final Map.Entry<String, String> pe : permCodeByRole.entrySet()) {
+                            final String role = pe.getKey();
+                            final String code = pe.getValue();
+
+                            final Map<String, Boolean> defaults = instance.getSettings().getDefaultValues().get(role);
+                            if (defaults == null) { permsOk = false; break; }
+
+                            final LinkedHashMap<String, Boolean> permValue = new LinkedHashMap<>();
+                            int idx = 0;
+                            for (final String permKey : defaults.keySet()) {
+                                if (idx >= code.length()) { permsOk = false; break; }
+                                permValue.put(permKey, code.charAt(idx) == '1');
+                                idx++;
+                            }
+                            if (!permsOk) break;
+
+                            perms.put(role, permValue);
+                        }
+
+                        if (!permsOk) continue;
+
+                        // chunks 디코드(좌표 목록)
+                        if (chunksBase64 == null || chunksBase64.isBlank()) continue;
+
+                        final List<int[]> coords = new ArrayList<>();
+                        try {
+                            final byte[] data = Base64.getDecoder().decode(chunksBase64);
+                            try (final ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data))) {
+                                while (true) {
+                                    try {
+                                        final int cx = in.readInt();
+                                        final int cz = in.readInt();
+                                        coords.add(new int[]{cx, cz});
+                                    } catch (final EOFException eof) {
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (final Exception ex) {
+                            continue;
+                        }
+                        if (coords.isEmpty()) continue;
+
+                        final Set<Chunk> chunks = ConcurrentHashMap.newKeySet();
+
+                        final CompletableFuture<Void> chunksFuture;
+                        if (instance.isFolia()) {
+                            final List<CompletableFuture<Void>> futures = new ArrayList<>(coords.size());
+                            for (final int[] pos : coords) {
+                                futures.add(world.getChunkAtAsync(pos[0], pos[1]).thenAccept(chunks::add));
+                            }
+                            chunksFuture = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+                        } else {
+                            // ⚠️ 비-Folia는 sync에서 chunk 접근 권장 (안전/정합성)
+                            chunksFuture = new CompletableFuture<>();
+                            instance.executeSync(() -> {
+                                for (final int[] pos : coords) {
+                                    chunks.add(world.getChunkAt(pos[0], pos[1]));
+                                }
+                                chunksFuture.complete(null);
+                            });
+                        }
+
+                        final UUID ownerUuidFinal = ownerUuid;
+                        final Location locFinal = loc;
+                        final CustomSet<UUID> membersFinal = members;
+                        final CustomSet<UUID> bansFinal = bans;
+                        final Map<String, LinkedHashMap<String, Boolean>> permsFinal = perms;
+                        final String ownerNameFinal = ownerName;
+                        final String claimNameFinal = claimName;
+                        final String claimDescFinal = claimDesc;
+
+                        // ✅ 최종 반영은 무조건 sync
+                        final CompletableFuture<Void> claimFuture = chunksFuture.thenRun(() -> instance.executeSync(() -> {
+                            if (chunks.isEmpty()) return;
+
+                            // (선택) 중복 청크 방지: 이미 다른 claim이 잡고 있으면 스킵
+                            // -> "두 명이 같은 청크 점유" DB 오염 상황에서도 캐시 오염을 방지
+                            for (final Chunk ck : chunks) {
+                                final Claim existing = listClaims.get(ck);
+                                if (existing != null) {
+                                    // 기존 claim이 있으면 이 청크는 스킵 (필요하면 로그)
+                                    // return; // 전체 claim 스킵
+                                    // 또는 continue로 일부만 제외하는 방식도 가능하나, 여기선 전체 스킵이 안전
+                                    return;
+                                }
+                            }
+
+                            final Claim claim = new Claim(
+                                    ownerUuidFinal,
+                                    new CustomSet<>(chunks),
+                                    ownerNameFinal,
+                                    new CustomSet<>(membersFinal),
+                                    locFinal,
+                                    claimNameFinal,
+                                    claimDescFinal,
+                                    new LinkedHashMap<>(permsFinal),
+                                    forSale,
+                                    salePrice,
+                                    new CustomSet<>(bansFinal),
+                                    idClaim
+                            );
+
+                            for (final Chunk ck : chunks) {
+                                listClaims.put(ck, claim);
+                            }
+
+                            playerClaims.computeIfAbsent(ownerUuidFinal, k -> new CustomSet<>()).add(claim);
+
+                            if (instance.getSettings().getBooleanSetting("dynmap") && instance.getDynmap() != null) {
+                                instance.getDynmap().createClaimZone(claim);
+                            }
+                            if (instance.getSettings().getBooleanSetting("bluemap") && instance.getBluemap() != null) {
+                                instance.getBluemap().createClaimZone(claim);
+                            }
+                            if (instance.getSettings().getBooleanSetting("pl3xmap") && instance.getPl3xMap() != null) {
+                                instance.getPl3xMap().createClaimZone(claim);
+                            }
+
+                            instance.getBossBars().activateBossBar(chunks);
+
+                            if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
+                                if (instance.isFolia()) {
+                                    for (final Chunk ck : chunks) {
+                                        Bukkit.getRegionScheduler().execute(instance, world, ck.getX(), ck.getZ(), () -> ck.setForceLoaded(true));
+                                    }
+                                } else {
+                                    for (final Chunk ck : chunks) {
+                                        ck.setForceLoaded(true);
+                                    }
+                                }
+                            }
+
+                            updateWeatherChunk(claim);
+                            updateFlyChunk(claim);
+                            getMapAutoForChunks(chunks);
+                        }));
+
+                        claimFutures.add(claimFuture);
+                    }
+
+                    CompletableFuture.allOf(claimFutures.toArray(new CompletableFuture[0]))
+                            .whenComplete((v, ex) -> {
+                                if (ex != null) ex.printStackTrace();
+                                result.complete(ex == null);
+                            });
+
+                } finally {
+                    worldReloadLocks.remove(worldName, lock);
                 }
-
-                CompletableFuture.allOf(claimFutures.toArray(new CompletableFuture[0]))
-                        .whenComplete((v, ex) -> {
-                            if (ex != null) ex.printStackTrace();
-                            result.complete(ex == null);
-                        });
-            });
+            }
         });
 
         return result;
