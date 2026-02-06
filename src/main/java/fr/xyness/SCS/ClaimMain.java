@@ -2200,148 +2200,145 @@ public class ClaimMain {
      * @param chunk  the chunk to claim
      */
     public CompletableFuture<Boolean> createClaim(Player player, Chunk chunk) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                if (player == null || chunk == null) return false;
+        if (player == null || chunk == null) return CompletableFuture.completedFuture(false);
 
-                final String worldName = chunk.getWorld().getName();
-                final int cx = chunk.getX();
-                final int cz = chunk.getZ();
-                final String lockKey = worldName + ";" + cx + ";" + cz;
+        final String worldName = chunk.getWorld().getName();
+        final int cx = chunk.getX();
+        final int cz = chunk.getZ();
+        final String lockKey = worldName + ";" + cx + ";" + cz;
 
-                // 1) Chunk 단위 락으로 "중복 점유" 원천 차단
-                final Object lock = claimLocks.computeIfAbsent(lockKey, k -> new Object());
+        final Object lock = claimLocks.computeIfAbsent(lockKey, k -> new Object());
 
-                final CompletableFuture<Claim> createdFuture = new CompletableFuture<>();
+        final CompletableFuture<Claim> createdFuture = new CompletableFuture<>();
 
-                synchronized (lock) {
-                    // 2) 캐시 변경은 무조건 sync(메인/리전)에서만
-                    instance.executeSync(() -> {
-                        // 이미 점유됐으면 실패
-                        if (listClaims.containsKey(chunk)) {
-                            createdFuture.complete(null);
-                            return;
+        Runnable syncCreate = () -> {
+            synchronized (lock) {
+                try {
+                    if (listClaims.containsKey(chunk)) {
+                        createdFuture.complete(null);
+                        return;
+                    }
+
+                    final UUID playerId = player.getUniqueId();
+                    final CPlayer cPlayer = instance.getPlayerMain().getCPlayer(playerId);
+                    if (cPlayer == null) {
+                        createdFuture.complete(null);
+                        return;
+                    }
+
+                    final int id = findFreeId(playerId);
+                    final String claimName = "claim-" + id;
+                    final String description = instance.getLanguage().getMessage("default-description");
+
+                    final Map<String, LinkedHashMap<String, Boolean>> perms =
+                            new HashMap<>(instance.getSettings().getDefaultValues());
+
+                    final Claim created = new Claim(
+                            playerId,
+                            new CustomSet<>(Set.of(chunk)),
+                            player.getName(),
+                            new CustomSet<>(Set.of(playerId)),
+                            player.getLocation().clone(),
+                            claimName,
+                            description,
+                            new HashMap<>(perms),
+                            false,
+                            0,
+                            new CustomSet<>(),
+                            id
+                    );
+
+                    // ✅ 캐시 반영(메인에서만)
+                    listClaims.put(chunk, created);
+                    playerClaims.computeIfAbsent(playerId, k -> new CustomSet<>()).add(created);
+
+                    // 부가 작업(메인에서만)
+                    cPlayer.setClaimsCount(cPlayer.getClaimsCount() + 1);
+
+                    if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(created);
+                    if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(created);
+                    if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(created);
+
+                    if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
+                        if (instance.isFolia()) {
+                            Bukkit.getRegionScheduler().execute(instance, chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> chunk.setForceLoaded(true));
+                        } else {
+                            chunk.setForceLoaded(true);
                         }
+                    }
 
-                        // 데이터 스냅샷
-                        final String playerName = player.getName();
-                        final UUID playerId = player.getUniqueId();
-                        final CPlayer cPlayer = instance.getPlayerMain().getCPlayer(playerId);
-                        if (cPlayer == null) {
-                            createdFuture.complete(null);
-                            return;
-                        }
+                    instance.getBossBars().activateBossBar(chunk);
+                    getMapAutoForChunks(Set.of(chunk));
+                    updateWeatherChunk(created);
+                    updateFlyChunk(created);
 
-                        // Claim 생성
-                        final int id = findFreeId(playerId);
-                        final String claimName = "claim-" + id;
-                        final String description = instance.getLanguage().getMessage("default-description");
-                        final String locationString = getLocationString(player.getLocation());
+                    Bukkit.getPluginManager().callEvent(new ClaimCreateEvent(created));
 
-                        final Map<String, LinkedHashMap<String, Boolean>> perms =
-                                new HashMap<>(instance.getSettings().getDefaultValues());
-
-                        final Claim newClaim = new Claim(
-                                playerId,
-                                new CustomSet<>(Set.of(chunk)),
-                                playerName,
-                                new CustomSet<>(Set.of(playerId)),
-                                player.getLocation().clone(),
-                                claimName,
-                                description,
-                                new HashMap<>(perms),
-                                false,
-                                0,
-                                new CustomSet<>(),
-                                id
-                        );
-
-                        // ✅ 캐시 반영 (sync)
-                        listClaims.put(chunk, newClaim);
-                        playerClaims.computeIfAbsent(playerId, k -> new CustomSet<>()).add(newClaim);
-
-                        // ✅ 이 아래 Bukkit/맵/보스바도 sync에서만
-                        cPlayer.setClaimsCount(cPlayer.getClaimsCount() + 1);
-
-                        if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(newClaim);
-                        if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(newClaim);
-                        if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(newClaim);
-
-                        if (instance.getSettings().getBooleanSetting("keep-chunks-loaded")) {
-                            if (instance.isFolia()) {
-                                Bukkit.getRegionScheduler().execute(instance, chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> chunk.setForceLoaded(true));
-                            } else {
-                                chunk.setForceLoaded(true);
-                            }
-                        }
-
-                        instance.getBossBars().activateBossBar(chunk);
-                        getMapAutoForChunks(Set.of(chunk));
-                        updateWeatherChunk(newClaim);
-                        updateFlyChunk(newClaim);
-
-                        // 이벤트도 sync
-                        final ClaimCreateEvent event = new ClaimCreateEvent(newClaim);
-                        Bukkit.getPluginManager().callEvent(event);
-
-                        // DB 저장에 필요한 값(Claim 자체를 넘겨도 되지만, 여기선 Claim만 넘김)
-                        createdFuture.complete(newClaim);
-                    });
-
-                    // 락 키 정리(메모리 누수 방지)
-                    // - createdFuture가 null이든 아니든 lockKey는 재생성 가능하므로 제거
+                    createdFuture.complete(created);
+                } finally {
+                    // ✅ 메모리 누수 방지(동일 객체일 때만 제거)
                     claimLocks.remove(lockKey, lock);
                 }
+            }
+        };
 
-                final Claim created = createdFuture.join();
-                if (created == null) return false;
+        // ✅ 메인 스레드면 즉시 실행 (데드락/타임아웃 방지)
+        if (Bukkit.isPrimaryThread()) {
+            syncCreate.run();
+        } else {
+            // 비메인이면 메인으로 던짐
+            instance.executeSync(syncCreate);
+        }
 
-                // 3) DB insert는 async에서 실행
-                final UUID ownerUuid = created.getUUID();
-                final String uuidStr = ownerUuid.toString();
-                final String ownerName = created.getOwner();
-                final String claimName = created.getName();
-                final String desc = created.getDescription();
-                final String locStr = getLocationString(created.getLocation());
-                final String chunksData = serializeChunks(Set.of(chunk));
+        // ✅ DB 작업은 async (createdFuture 완료 후)
+        return createdFuture.thenCompose(created -> {
+            if (created == null) return CompletableFuture.completedFuture(false);
 
+            return CompletableFuture.supplyAsync(() -> {
                 boolean dbOk;
                 try (Connection connection = instance.getDataSource().getConnection();
                      PreparedStatement stmt = connection.prepareStatement(
                              "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) " +
                                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                      )) {
+
+                    final String ownerUuidStr = created.getUUID().toString();
+
                     stmt.setInt(1, created.getId());
-                    stmt.setString(2, uuidStr);
-                    stmt.setString(3, ownerName);
-                    stmt.setString(4, claimName);
-                    stmt.setString(5, desc);
-                    stmt.setString(6, chunksData);
+                    stmt.setString(2, ownerUuidStr);
+                    stmt.setString(3, created.getOwner());
+                    stmt.setString(4, created.getName());
+                    stmt.setString(5, created.getDescription());
+                    stmt.setString(6, serializeChunks(Set.of(chunk)));
                     stmt.setString(7, worldName);
-                    stmt.setString(8, locStr);
-                    stmt.setString(9, uuidStr);
+                    stmt.setString(8, getLocationString(created.getLocation()));
+                    stmt.setString(9, ownerUuidStr);
                     stmt.setString(10, instance.getSettings().getDefaultValuesCode("all"));
                     stmt.setString(11, "");
                     stmt.executeUpdate();
+
                     dbOk = true;
                 } catch (SQLException e) {
                     e.printStackTrace();
                     dbOk = false;
                 }
 
-                // 4) DB 실패 시 롤백(캐시/보스바/맵)도 sync에서
+                // ✅ DB 실패 시 롤백은 메인에서만
                 if (!dbOk) {
                     instance.executeSync(() -> {
                         listClaims.remove(chunk);
-                        CustomSet<Claim> set = playerClaims.get(ownerUuid);
+
+                        CustomSet<Claim> set = playerClaims.get(created.getUUID());
                         if (set != null) {
                             set.remove(created);
-                            if (set.isEmpty()) playerClaims.remove(ownerUuid);
+                            if (set.isEmpty()) playerClaims.remove(created.getUUID());
                         }
+
                         instance.getBossBars().deactivateBossBar(Set.of(chunk));
                         if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().deleteMarker(Set.of(chunk));
                         if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().deleteMarker(Set.of(chunk));
                         if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().deleteMarker(Set.of(chunk));
+
                         resetWeatherChunk(created);
                         resetFlyChunk(created);
                         getMapAutoForChunks(Set.of(chunk));
@@ -2349,10 +2346,7 @@ public class ClaimMain {
                 }
 
                 return dbOk;
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
+            });
         });
     }
 
