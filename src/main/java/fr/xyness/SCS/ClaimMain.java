@@ -385,6 +385,7 @@ public class ClaimMain {
      * @return The claim associated with the chunk, or null if none exists
      */
     public Claim getClaim(Chunk chunk) {
+        if (chunk == null) return null;
         return listClaims.get(chunk);
     }
 
@@ -518,6 +519,7 @@ public class ClaimMain {
      * @return the claim, or null if no claim exists for the chunk
      */
     public Claim getClaimFromChunk(Chunk chunk) {
+        if (chunk == null) return null;
         return listClaims.get(chunk);
     }
 
@@ -2357,7 +2359,15 @@ public class ClaimMain {
      * @param chunk  the chunk to claim
      */
     public void handleClaimConflict(Player player, Chunk chunk) {
+        if (player == null || chunk == null) return;
+
         Claim claim = listClaims.get(chunk);
+        if (claim == null) {
+            // 여기서 메시지를 보낼지/말지는 정책인데,
+            // 기존 로직 유지하려면 그냥 return이 안전함.
+            return;
+        }
+
         String owner = claim.getOwner();
         if (owner.equals("*")) {
             player.sendMessage(instance.getLanguage().getMessage("create-error-protected-area"));
@@ -2661,6 +2671,7 @@ public class ClaimMain {
      * @return true if a claim exists in the chunk, false otherwise
      */
     public boolean checkIfClaimExists(Chunk chunk) {
+        if (chunk == null) return false;
         return listClaims.containsKey(chunk);
     }
 
@@ -2682,8 +2693,13 @@ public class ClaimMain {
      * @return true if the permission is allowed, false otherwise
      */
     public boolean canPermCheck(Chunk chunk, String perm, String role) {
+        if (chunk == null || perm == null || perm.isBlank()) return false;
+
         Claim claim = listClaims.get(chunk);
-        return claim != null && claim.getPermission(perm, role == null ? "natural" : role.toLowerCase());
+        if (claim == null) return false;
+
+        String roleKey = (role == null ? "natural" : role.toLowerCase());
+        return claim.getPermission(perm, roleKey);
     }
 
     /**
@@ -2693,6 +2709,7 @@ public class ClaimMain {
      * @return the owner of the claim, or an empty string if no claim exists for the chunk
      */
     public String getOwnerInClaim(Chunk chunk) {
+        if (chunk == null) return "";
         Claim claim = listClaims.get(chunk);
         return claim == null ? "" : claim.getOwner();
     }
