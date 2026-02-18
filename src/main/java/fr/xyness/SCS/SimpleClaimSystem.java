@@ -2,12 +2,15 @@ package fr.xyness.SCS;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.attribute.DosFileAttributeView;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -65,6 +68,8 @@ import net.md_5.bungee.api.ChatColor;
  * This class provides some useful methods
  */
 public class SimpleClaimSystem extends JavaPlugin {
+  private static final String MAIN_CONFIG_NAME = "config.yml";
+  private static final String MAIN_CONFIG_LOCK_FILE = "config.lock";
 
 
   // ***************
@@ -219,8 +224,8 @@ public class SimpleClaimSystem extends JavaPlugin {
         info("==========================================================================");
       }
 
-      // Save and reload config
-      saveDefaultConfig();
+      // Create config.yml once and keep it locked afterwards
+      ensureMainConfigInitializedAndLocked();
       reloadConfig();
 
       // Message for console
@@ -958,8 +963,8 @@ public class SimpleClaimSystem extends JavaPlugin {
       sender.sendMessage(getLanguage().getMessage("config-reload-attempt"));
       info("==========================================================================");
 
-      // Save and reload config
-      saveDefaultConfig();
+      // Create config.yml once and keep it locked afterwards
+      ensureMainConfigInitializedAndLocked();
       reloadConfig();
 
       // Clear bossbars
@@ -1787,10 +1792,11 @@ public class SimpleClaimSystem extends JavaPlugin {
    * @param plugin The plugin instance
    */
   public void updateConfigWithDefaults() {
-    File configFile = new File(getDataFolder(), "config.yml");
+    File configFile = new File(getDataFolder(), MAIN_CONFIG_NAME);
     if (!configFile.exists()) {
       saveDefaultConfig();
     }
+    if (isMainConfigLocked()) return;
 
     FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
     InputStream defConfigStream = getResource("config.yml");
@@ -1828,6 +1834,70 @@ public class SimpleClaimSystem extends JavaPlugin {
         e.printStackTrace();
       }
     }
+  }
+
+  private File getMainConfigFile() {
+    return new File(getDataFolder(), MAIN_CONFIG_NAME);
+  }
+
+  private File getMainConfigLockFile() {
+    return new File(getDataFolder(), MAIN_CONFIG_LOCK_FILE);
+  }
+
+  private void ensureMainConfigInitializedAndLocked() {
+    File configFile = getMainConfigFile();
+    if (!configFile.exists()) {
+      saveDefaultConfig();
+    }
+    ensureMainConfigNotReadOnly(configFile);
+
+    File lockFile = getMainConfigLockFile();
+    if (!lockFile.exists()) {
+      try {
+        lockFile.createNewFile();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  private void ensureMainConfigNotReadOnly(File configFile) {
+    if (configFile == null || !configFile.exists()) return;
+
+    try {
+      configFile.setWritable(true, false);
+    } catch (SecurityException ignored) {
+    }
+
+    try {
+      DosFileAttributeView dosView = Files.getFileAttributeView(configFile.toPath(), DosFileAttributeView.class);
+      if (dosView != null && dosView.readAttributes().isReadOnly()) {
+        dosView.setReadOnly(false);
+        info(ChatColor.YELLOW + "Removed read-only attribute from config.yml");
+      }
+    } catch (IOException | UnsupportedOperationException ignored) {
+    }
+  }
+
+  public boolean isMainConfigLocked() {
+    return getMainConfigLockFile().exists();
+  }
+
+  public void saveMainConfigOrThrow(FileConfiguration config, File configFile) throws IOException {
+    if (isMainConfigLocked()) {
+      throw new IOException("config.yml is locked after initial creation.");
+    }
+    config.save(configFile);
+  }
+
+  public void handleMainConfigSaveException(CommandSender sender, IOException exception) {
+    if (isMainConfigLocked()) {
+      if (sender != null) {
+        sender.sendMessage(ChatColor.RED + "config.yml is locked after initial creation and cannot be modified.");
+      }
+      return;
+    }
+    exception.printStackTrace();
   }
 
   /**

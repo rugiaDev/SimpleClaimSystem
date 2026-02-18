@@ -580,10 +580,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         	                instance.getPlayerMain().updatePlayerConfigSettings(targetId, "claim-distance", amount);
                         }
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-claim-distance-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -617,10 +617,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         	                instance.getPlayerMain().updatePlayerConfigSettings(targetId, "max-chunks-total", amount);
                         }
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-max-chunks-total-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -654,10 +654,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         	                instance.getPlayerMain().updatePlayerConfigSettings(targetId, "max-chunks-per-claim", amount);
                         }
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-max-chunks-per-claim-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -691,10 +691,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         	                instance.getPlayerMain().updatePlayerConfigSettings(targetId, "claim-cost", amount);
                         }
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-claim-cost-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -728,10 +728,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         	                instance.getPlayerMain().updatePlayerConfigSettings(targetId, "chunk-cost", amount);
                         }
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-chunk-cost-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -765,10 +765,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         	                instance.getPlayerMain().updatePlayerConfigSettings(targetId, "chunk-cost-multiplier", amount);
                         }
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-chunk-cost-multiplier-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -802,10 +802,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         	                instance.getPlayerMain().updatePlayerConfigSettings(targetId, "claim-cost-multiplier", amount);
                         }
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-claim-cost-multiplier-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -839,10 +839,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         	                instance.getPlayerMain().updatePlayerConfigSettings(targetId, "max-members", Double.valueOf(amount));
                         }
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-member-limit-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -876,10 +876,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         	                instance.getPlayerMain().updatePlayerConfigSettings(targetId, "max-claims", Double.valueOf(amount));
                         }
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-max-claim-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -914,10 +914,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                         }
                         
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-max-radius-claim-success").replace("%player%", targetName).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -952,10 +952,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                         }
                         
                         try {
-                        	config.save(configFile);
+                        	instance.saveMainConfigOrThrow(config, configFile);
                         	sender.sendMessage(instance.getLanguage().getMessage("set-player-teleportation-delay-success").replace("%player%", targetName).replace("%amount%", String.valueOf(args[3])));
         				} catch (IOException e) {
-        					e.printStackTrace();
+        					instance.handleMainConfigSaveException(sender, e);
         				}
     				});
     			});
@@ -988,10 +988,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("players."+name+".max-claims", new_amount);
                 instance.getPlayerMain().updatePlayerConfigSettings(targetId, "max-claims", Double.valueOf(new_amount));
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-player-max-claim-success").replace("%player%", name).replace("%amount%", instance.getMain().getNumberSeparate(String.valueOf(new_amount))));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1022,10 +1022,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("players."+name+".max-radius-claims", new_amount);
                 instance.getPlayerMain().updatePlayerConfigSettings(targetId, "max-radius-claims", Double.valueOf(new_amount));
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-player-max-radius-claim-success").replace("%player%", name).replace("%amount%", instance.getMain().getNumberSeparate(String.valueOf(new_amount))));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1056,10 +1056,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("players."+name+".max-members", new_amount);
                 instance.getPlayerMain().updatePlayerConfigSettings(targetId, "max-members", Double.valueOf(new_amount));
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-player-member-limit-success").replace("%player%", name).replace("%amount%", instance.getMain().getNumberSeparate(String.valueOf(new_amount))));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1090,10 +1090,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("players."+name+".max-chunks-per-claim", new_amount);
                 instance.getPlayerMain().updatePlayerConfigSettings(targetId, "max-chunks-per-claim", Double.valueOf(new_amount));
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-player-max-chunks-per-claim-success").replace("%player%", name).replace("%amount%", instance.getMain().getNumberSeparate(String.valueOf(new_amount))));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1124,10 +1124,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("players."+name+".max-chunks-total", new_amount);
                 instance.getPlayerMain().updatePlayerConfigSettings(targetId, "max-chunks-total", Double.valueOf(new_amount));
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-player-max-chunks-total-success").replace("%player%", name).replace("%amount%", instance.getMain().getNumberSeparate(String.valueOf(new_amount))));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1158,10 +1158,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".claim-distance", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("claim-distance", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-claim-distance-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1183,10 +1183,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".max-chunks-total", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("max-chunks-total", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-max-chunks-total-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1208,10 +1208,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".max-chunks-per-claim", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("max-chunks-per-claim", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-max-chunks-per-claim-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1233,10 +1233,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".claim-cost", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("claim-cost", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-claim-cost-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1258,10 +1258,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".chunk-cost", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("chunk-cost", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-chunk-cost-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1283,10 +1283,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".claim-cost-multiplier", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("claim-cost-multiplier", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-claim-cost-multiplier-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1308,10 +1308,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".chunk-cost-multiplier", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("chunk-cost-multiplier", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-chunk-cost-multiplier-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1333,10 +1333,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".max-members", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("max-members", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-member-limit-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1358,10 +1358,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".max-claims", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("max-claims", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-max-claim-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1383,10 +1383,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".max-radius-claims", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("max-radius-claims", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-max-radius-claim-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
@@ -1408,10 +1408,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 config.set("groups."+args[2]+".teleportation-delay", amount);
                 instance.getSettings().getGroupsSettings().get(args[2]).put("teleportation-delay", amount);
                 try {
-                	config.save(configFile);
+                	instance.saveMainConfigOrThrow(config, configFile);
                 	sender.sendMessage(instance.getLanguage().getMessage("set-group-teleportation-delay-success").replace("%group%", args[2]).replace("%amount%", instance.getMain().getNumberSeparate(args[3])));
 				} catch (IOException e) {
-					e.printStackTrace();
+					instance.handleMainConfigSaveException(sender, e);
 				}
                 return;
         	}
