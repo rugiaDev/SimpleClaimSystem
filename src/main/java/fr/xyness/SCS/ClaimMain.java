@@ -714,6 +714,13 @@ public class ClaimMain {
                 .collect(Collectors.toCollection(CustomSet::new));
     }
 
+    public CustomSet<String> getClaimsNameFromOwner(UUID uuid) {
+        return listClaims.entrySet().stream()
+                .filter(entry -> entry.getValue().getUUID().equals(uuid))
+                .map(entry -> entry.getValue().getName())
+                .collect(Collectors.toCollection(CustomSet::new));
+    }
+
     /**
      * Gets the names of all claims in sale owned by the specified owner.
      *
