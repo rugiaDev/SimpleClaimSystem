@@ -417,6 +417,10 @@ public class ClaimMain {
                 .orElse(null);
     }
 
+    public Set<Claim> getClaimByUUID(UUID ownerUUID) {
+        return playerClaims.getOrDefault(ownerUUID, new CustomSet<>());
+    }
+
     /**
      * Gets a protected area by its name.
      *
@@ -3269,6 +3273,37 @@ public class ClaimMain {
                 // Get data
                 UUID uuid = claim.getUUID();
                 UUID targetUUID = instance.getPlayerMain().getPlayerUUID(name);
+
+                // Add member
+                claim.removeMember(targetUUID);
+
+                // Update database
+                String membersString = getMemberString(claim);
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE scs_claims_1 SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setString(1, membersString);
+                        preparedStatement.setString(2, uuid.toString());
+                        preparedStatement.setString(3, claim.getName());
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        });
+    }
+
+    public CompletableFuture<Boolean> removeClaimMember(Claim claim, UUID targetUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // Get data
+                UUID uuid = claim.getUUID();
 
                 // Add member
                 claim.removeMember(targetUUID);
