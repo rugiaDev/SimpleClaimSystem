@@ -1856,45 +1856,54 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             return;
         }
         if (args[0].equalsIgnoreCase("see")) {
-            if (!instance.getPlayerMain().checkPermPlayer(player, "scs.command.claim.see.others")) {
-            	player.sendMessage(instance.getLanguage().getMessage("cmd-no-permission"));
-                return;
-            }
-            String world = player.getWorld().getName();
-            if (instance.getSettings().getWorldMode(world) == WorldMode.DISABLED) {
-            	player.sendMessage(instance.getLanguage().getMessage("world-disabled").replace("%world%", instance.getSettings().getWorldAliase(world)));
-                return;
-            }
-            Player target = Bukkit.getPlayer(args[1]);
-            UUID[] uuid = {null};
-            
-            // Create runnable
-            Runnable task = () -> {
-            	instance.executeSync(() -> {
-                    if (instance.getMain().getPlayerClaimsCount(uuid[0]) == 0) {
-                    	player.sendMessage(instance.getLanguage().getMessage("target-does-not-have-claim").replace("%name%", args[1]));
-                        return;
-                    }
-                    Set<Chunk> chunks = new HashSet<>();
-                    instance.getMain().getPlayerClaims(playerName).forEach(c -> c.getChunks().forEach(chunk -> chunks.add(chunk)));
-                    instance.getMain().displayChunks(player, new CustomSet<>(chunks), false, true);
-            	});
-            };
-            
-            if (target == null) {
-            	instance.getOfflinePlayer(args[1], otarget -> {
-                    if (otarget == null || !otarget.hasPlayedBefore()) {
-                    	player.sendMessage(instance.getLanguage().getMessage("player-never-played").replace("%player%", args[1]));
-                        return;
-                    }
-                    uuid[0] = otarget.getUniqueId();
-                    task.run();
-            	});
-            } else {
-                uuid[0] = target.getUniqueId();
-                task.run();
-            }
+          if (!instance.getPlayerMain().checkPermPlayer(player, "scs.command.claim.see.others")) {
+            player.sendMessage(instance.getLanguage().getMessage("cmd-no-permission"));
             return;
+          }
+
+          String world = player.getWorld().getName();
+          if (instance.getSettings().getWorldMode(world) == WorldMode.DISABLED) {
+            player.sendMessage(instance.getLanguage().getMessage("world-disabled")
+                    .replace("%world%", instance.getSettings().getWorldAliase(world)));
+            return;
+          }
+
+          // ✅ /claim see <uuid> 우선 처리 (UUID 파싱 실패 시: 온라인 플레이어명으로만 허용)
+          String raw = args[1];
+          UUID uuid;
+          try {
+            uuid = UUID.fromString(raw);
+          } catch (IllegalArgumentException ex) {
+            Player target = Bukkit.getPlayer(raw);
+            if (target == null) {
+              // 오프라인 조회/hasPlayedBefore 체크 제거 (요구사항)
+              player.sendMessage(instance.getLanguage().getMessage("player-not-online").replace("%player%", raw));
+              return;
+            }
+            uuid = target.getUniqueId();
+          }
+
+          Set<Claim> claims = instance.getMain().getClaimByUUID(uuid);
+          if (claims == null || claims.isEmpty()) {
+            player.sendMessage(instance.getLanguage().getMessage("target-does-not-have-claim").replace("%name%", raw));
+            return;
+          }
+
+          // ✅ 여러 클레임이면 전부 합쳐서 한 번에 표시 (displayChunks 여러 번 호출 방지)
+          Set<Chunk> chunks = new HashSet<>();
+          for (Claim claim : claims) {
+            if (claim == null) continue;
+            chunks.addAll(claim.getChunks());
+          }
+
+          if (chunks.isEmpty()) {
+            // 안전장치 (이상 케이스)
+            chunks.add(player.getLocation().getChunk());
+          }
+
+          // 기존 "see others" 동작과 동일하게 others 플래그 유지 (마지막 true)
+          instance.getMain().displayChunks(player, new CustomSet<>(chunks), false, true);
+          return;
         }
         if (args[0].equalsIgnoreCase("settings")) {
         	if (!instance.getPlayerMain().checkPermPlayer(player, "scs.command.claim.settings")) {
