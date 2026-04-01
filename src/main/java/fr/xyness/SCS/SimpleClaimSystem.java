@@ -879,8 +879,6 @@ public class SimpleClaimSystem extends JavaPlugin {
       getCommand("claims").setExecutor(new ClaimsCommand(this));
       getCommand("protectedarea").setExecutor(new ProtectedAreaCommand(this));
 
-      // Save config
-      saveConfig();
       reloadConfig();
 
       // Load bossbar default settings
@@ -1486,8 +1484,6 @@ public class SimpleClaimSystem extends JavaPlugin {
       // Add ignored place blocks
       claimSettingsInstance.setPlaceBlocksIgnore(getConfig().getStringList("ignored-place-blocks"));
 
-      // Save config
-      saveConfig();
       reloadConfig();
 
       // Load bossbar default settings
@@ -1796,6 +1792,7 @@ public class SimpleClaimSystem extends JavaPlugin {
     if (!configFile.exists()) {
       saveDefaultConfig();
     }
+
     if (isMainConfigLocked()) return;
 
     FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
