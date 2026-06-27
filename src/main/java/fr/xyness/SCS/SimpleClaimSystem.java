@@ -1731,6 +1731,9 @@ public class SimpleClaimSystem extends JavaPlugin {
     }
     claimLanguageInstance.setLanguage(messages);
 
+    // Re-read the on-disk config first so externally-added keys (e.g. database-settings.table-*)
+    // are not erased when the whole config is written back by saveConfig().
+    reloadConfig();
     getConfig().set("lang", lang);
     saveConfig();
     reloadConfig();
@@ -1946,11 +1949,12 @@ public class SimpleClaimSystem extends JavaPlugin {
    * Check the key
    *
    * @param key The target key
-   * @return True if the key must be deleted
+   * @return True if the key must be preserved (protected from automatic removal)
    */
   private boolean checkKey(String key) {
     return key.startsWith("groups.") || key.startsWith("players.") || key.startsWith("expulsion-location") ||
-            key.startsWith("claims-worlds-mode") || key.equals("worlds-disabled") || key.startsWith("world-aliases");
+            key.startsWith("claims-worlds-mode") || key.equals("worlds-disabled") || key.startsWith("world-aliases") ||
+            key.equals("database-settings") || key.startsWith("database-settings.");
   }
 
   /**
@@ -2169,6 +2173,8 @@ public class SimpleClaimSystem extends JavaPlugin {
   public void setExpulsionLocation(Location loc) {
     getSettings().setExpulsionLocation(loc);
     CompletableFuture.runAsync(() -> {
+      // Re-read the on-disk config first so externally-added keys are not erased by saveConfig().
+      reloadConfig();
       FileConfiguration config = getConfig();
       config.set("expulsion-location.world", loc.getWorld().getName());
       config.set("expulsion-location.x", loc.getX());
