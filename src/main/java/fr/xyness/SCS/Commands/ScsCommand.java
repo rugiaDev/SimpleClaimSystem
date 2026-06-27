@@ -457,6 +457,113 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
                 }
     			return;
     		}
+    		if(args[0].equalsIgnoreCase("transferowner")) {
+                Player target = Bukkit.getPlayer(args[1]);
+                String[] targetName = {""};
+                UUID[] uuid = {null};
+
+                // Create runnable
+                Runnable task = () -> {
+                	instance.executeSync(() -> {
+                		if(!instance.getMain().getClaimsOwners().contains(targetName[0])) {
+            				player.sendMessage(instance.getLanguage().getMessage("player-does-not-have-claim"));
+            				return;
+            			}
+            			if(args[2].equals("*")) {
+
+                			// Check new owner
+                            Player newOwner = Bukkit.getPlayer(args[3]);
+                            String[] ownerName = {""};
+
+                            Runnable subtask = () -> {
+                            	instance.executeSync(() -> {
+                            		instance.getMain().transferOwnership(ownerName[0], instance.getMain().getPlayerClaims(targetName[0]), targetName[0])
+                	        			.thenAccept(success -> {
+                	        				if (success) {
+                	        					sender.sendMessage(instance.getLanguage().getMessage("transfer-all-claims-other-success").replace("%owner%", ownerName[0]).replace("%old-owner%", targetName[0]));
+                	        				}
+                	        			})
+                	                    .exceptionally(ex -> {
+                	                        return null;
+                	                    });
+                            	});
+                            };
+
+                            if (newOwner == null) {
+                            	instance.getOfflinePlayer(args[3], otarget -> {
+                                    if (otarget == null || !otarget.hasPlayedBefore()) {
+                                    	player.sendMessage(instance.getLanguage().getMessage("player-never-played").replace("%player%", args[3]));
+                                        return;
+                                    }
+                                    ownerName[0] = otarget.getName();
+                                    subtask.run();
+                            	});
+                            } else {
+                            	ownerName[0] = newOwner.getName();
+                                subtask.run();
+                            }
+
+            			} else {
+
+                			if(!instance.getMain().getClaimsNameFromOwner(targetName[0]).contains(args[2])) {
+                				player.sendMessage(instance.getLanguage().getMessage("claim-player-not-found"));
+                				return;
+                			}
+
+                            Player newOwner = Bukkit.getPlayer(args[3]);
+                            String[] ownerName = {""};
+
+                            Runnable subtask = () -> {
+                            	instance.executeSync(() -> {
+                        			Claim claim = instance.getMain().getClaimByName(args[2], uuid[0]);
+                            		instance.getMain().transferOwnership(ownerName[0], claim)
+                	        			.thenAccept(success -> {
+                	        				if (success) {
+                	        					sender.sendMessage(instance.getLanguage().getMessage("transfer-claim-other-success").replace("%owner%", ownerName[0])
+                	        							.replace("%old-owner%", targetName[0])
+                	        							.replace("%claim-name%", claim.getName()));
+                	        				}
+                	        			})
+                	                    .exceptionally(ex -> {
+                	                        return null;
+                	                    });
+                            	});
+                            };
+
+                            if (newOwner == null) {
+                            	instance.getOfflinePlayer(args[3], otarget -> {
+                                    if (otarget == null || !otarget.hasPlayedBefore()) {
+                                    	player.sendMessage(instance.getLanguage().getMessage("player-never-played").replace("%player%", args[3]));
+                                        return;
+                                    }
+                                    ownerName[0] = otarget.getName();
+                                    subtask.run();
+                            	});
+                            } else {
+                            	ownerName[0] = newOwner.getName();
+                                subtask.run();
+                            }
+            			}
+                	});
+                };
+
+                if (target == null) {
+                	instance.getOfflinePlayer(args[1], otarget -> {
+                        if (otarget == null || !otarget.hasPlayedBefore()) {
+                        	player.sendMessage(instance.getLanguage().getMessage("player-never-played").replace("%player%", args[1]));
+                            return;
+                        }
+                        targetName[0] = otarget.getName();
+                        uuid[0] = otarget.getUniqueId();
+                        task.run();
+                	});
+                } else {
+                    targetName[0] = target.getName();
+                    uuid[0] = target.getUniqueId();
+                    task.run();
+                }
+    			return;
+    		}
     		if(args[0].equalsIgnoreCase("player")) {
     			if(args[1].equalsIgnoreCase("main")) {
         			if(!instance.getMain().getClaimsOwners().contains(args[2])) {
@@ -1427,8 +1534,8 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
      */
     private List<String> getPrimaryCompletions(String[] args) {
     	String partialInput = args.length > 0 ? args[0].toLowerCase() : "";
-        List<String> completions = List.of("reload", "config-reload", "transfer", "player", "cplayer", "group", "forceunclaim", "setowner", "set-lang", 
-                "reset-all-player-claims-settings", "reset-all-admin-claims-settings","admin","import-griefprevention","import-xclaims","setexpulsionlocation");
+        List<String> completions = List.of("reload", "config-reload", "transfer", "player", "cplayer", "group", "forceunclaim", "setowner", "set-lang",
+                "reset-all-player-claims-settings", "reset-all-admin-claims-settings","admin","import-griefprevention","import-xclaims","setexpulsionlocation","transferowner");
         return completions.stream()
     	        .filter(c -> c.toLowerCase().startsWith(partialInput))
     	        .collect(Collectors.toList());
@@ -1448,6 +1555,9 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         switch (command) {
             case "setowner":
                 completions.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()));
+                break;
+            case "transferowner":
+                completions.addAll(new HashSet<>(instance.getMain().getClaimsOwners()));
                 break;
             case "group":
             case "cplayer":
@@ -1494,6 +1604,10 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
             	completions.add("*");
             	completions.addAll(instance.getMain().getClaimsNameFromOwner(args[1]));
             	break;
+            case "transferowner":
+            	completions.add("*");
+            	completions.addAll(instance.getMain().getClaimsNameFromOwner(args[1]));
+            	break;
             default:
                 break;
         }
@@ -1515,6 +1629,9 @@ public class ScsCommand implements CommandExecutor, TabCompleter {
         String partialInput = args.length > 3 ? args[3].toLowerCase() : "";
         switch (command) {
             case "setowner":
+            	completions.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()));
+            	break;
+            case "transferowner":
             	completions.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()));
             	break;
             default:

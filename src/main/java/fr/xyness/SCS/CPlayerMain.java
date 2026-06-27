@@ -240,10 +240,10 @@ public class CPlayerMain {
                     String updateQuery;
 
                     if (dbProductName.contains("sqlite")) {
-                        updateQuery = "INSERT INTO scs_players(uuid_server, uuid_mojang, player_name, player_head, player_textures) " +
+                        updateQuery = "INSERT INTO " + ClaimMain.TABLE_PLAYERS + "(uuid_server, uuid_mojang, player_name, player_head, player_textures) " +
                                 "VALUES(?, ?, ?, ?, ?) ON CONFLICT(uuid_server) DO UPDATE SET player_name = excluded.player_name";
                     } else if (dbProductName.contains("mysql")) {
-                        updateQuery = "INSERT INTO scs_players(uuid_server, uuid_mojang, player_name, player_head, player_textures) " +
+                        updateQuery = "INSERT INTO " + ClaimMain.TABLE_PLAYERS + "(uuid_server, uuid_mojang, player_name, player_head, player_textures) " +
                                 "VALUES(?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE player_name = VALUES(player_name)";
                     } else {
                         throw new UnsupportedOperationException("Unsupported database: " + dbProductName);
@@ -262,14 +262,14 @@ public class CPlayerMain {
                 }
             } else if (nameChanged) {
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_players SET player_name = ? WHERE uuid_server = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_PLAYERS + " SET player_name = ? WHERE uuid_server = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, playerName);
                         preparedStatement.setString(2, uuid.toString());
                         preparedStatement.executeUpdate();
                     }
 
-                    updateQuery = "UPDATE scs_claims_1 SET owner_name = ? WHERE owner_uuid = ?";
+                    updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET owner_name = ? WHERE owner_uuid = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, playerName);
                         preparedStatement.setString(2, uuid.toString());
@@ -282,7 +282,7 @@ public class CPlayerMain {
                 // 스킨만 변경되었을 가능성: texturesFinal이 유효할 때만 업데이트
                 if (!"none".equals(texturesFinal)) {
                     try (Connection connection = instance.getDataSource().getConnection()) {
-                        String updateQuery = "UPDATE scs_players SET player_textures = ? WHERE uuid_server = ?";
+                        String updateQuery = "UPDATE " + ClaimMain.TABLE_PLAYERS + " SET player_textures = ? WHERE uuid_server = ?";
                         try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                             preparedStatement.setString(1, texturesFinal);
                             preparedStatement.setString(2, uuid.toString());
@@ -306,7 +306,7 @@ public class CPlayerMain {
         int i = 0;
 
         try (Connection connection = instance.getDataSource().getConnection()) {
-            String getQuery = "SELECT * FROM scs_players";
+            String getQuery = "SELECT * FROM " + ClaimMain.TABLE_PLAYERS;
             try (PreparedStatement preparedStatement = connection.prepareStatement(getQuery);
                  ResultSet resultSet = preparedStatement.executeQuery()) {
 

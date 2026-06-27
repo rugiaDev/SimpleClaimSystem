@@ -213,6 +213,10 @@ remove-claim-protected-area-player: "§fYou have been removed from the protected
 add-all-claim-protected-area-player: "§fYou have been added to §aall protected areas§f."
 add-claim-protected-area-player: "§fYou have been added to the protected area §a%claim-name%§f."
 cant-transfer-ownership-yourself: "§cYou can't transfer ownership to yourself."
+transfer-claim-success: "§fOwnership of claim §e%claim-name%§f has been transferred to §e%owner%§f. (Members preserved)"
+transfer-all-claims-success: "§fOwnership of §eall your claims§f has been transferred to §e%owner%§f. (Members preserved)"
+transfer-claim-other-success: "§fOwnership of claim §e%claim-name%§f of §e%old-owner%§f has been transferred to §e%owner%§f. (Members preserved)"
+transfer-all-claims-other-success: "§fOwnership of §eall claims§f of §e%old-owner%§f has been transferred to §e%owner%§f. (Members preserved)"
 fly-disabled-on-this-server: "§cClaim fly is disabled on this server."
 fly-enabled: "§fFly on."
 fly-disabled: "§fFly off."
@@ -781,6 +785,9 @@ help-command:
   claim-owner: |
     §bSyntax : §f/claim owner [<*|claim-name>] <player>
     §bDescription : §fTransfer ownership of claim(s) to a player
+  claim-transfer: |
+    §bSyntax : §f/claim transfer <*|claim-name> <player>
+    §bDescription : §fTransfer ownership of claim(s) to a player (preserves members)
   claim-merge: |
     §bSyntax : §f/claim merge <claim-name-1> <claim-name-2>
     §bDescription : §fMerge two claims into one
@@ -888,6 +895,9 @@ help-command:
   scs-setowner: |
     §bSyntax : §f/scs setowner <claim> <player>
     §bDescription : §fSet the owner of a claim
+  scs-transferowner: |
+    §bSyntax : §f/scs transferowner <old-owner> <*|claim-name> <new-owner>
+    §bDescription : §fTransfer ownership of claim(s) preserving members
   scs-set-lang: |
     §bSyntax : §f/scs set-lang <language>
     §bDescription : §fSet the language for the plugin

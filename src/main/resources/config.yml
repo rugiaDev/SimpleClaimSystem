@@ -19,6 +19,9 @@ database-settings:
   database_name: test_server
   username: root
   password: pass
+  # Table names (change these to run multiple servers on the same database)
+  table-claims: scs_claims_1
+  table-players: scs_players
 
 # Aliases
 # Configure the aliases of the main commands.

@@ -69,6 +69,10 @@ public class ClaimMain {
     /** Key UUID for protected areas */
     public static final UUID SERVER_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
+    /** Configurable table names (set from config.yml database-settings on load/reload). Defaults match the historical hardcoded names. */
+    public static String TABLE_CLAIMS = "scs_claims_1";
+    public static String TABLE_PLAYERS = "scs_players";
+
     /** Mapping of players to their original locations. */
     private final Map<Player, Location> playerLocations = new HashMap<>();
 
@@ -90,7 +94,7 @@ public class ClaimMain {
 
     /** Set of command arguments for /scs. */
     private CustomSet<String> commandArgsScs = new CustomSet<>(Set.of("reload", "config-reload", "transfer", "list", "player", "group", "forceunclaim", "setowner", "set-lang",
-            "reset-all-player-claims-settings", "reset-all-admin-claims-settings", "admin", "setexpulsionlocation"));
+            "reset-all-player-claims-settings", "reset-all-admin-claims-settings", "admin", "setexpulsionlocation", "transferowner"));
 
     /** Set of command arguments for /parea. */
     private CustomSet<String> commandArgsParea = new CustomSet<>(Set.of("setdesc", "settings", "setname", "members", "tp",
@@ -1311,7 +1315,7 @@ public class ClaimMain {
                 CompletableFuture<Void> allClaimsFuture = CompletableFuture.allOf(futureClaims.toArray(new CompletableFuture[0]));
                 allClaimsFuture.thenRun(() -> {
                     try (Connection targetConnection = instance.getDataSource().getConnection();
-                         PreparedStatement stmt = targetConnection.prepareStatement("INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                         PreparedStatement stmt = targetConnection.prepareStatement("INSERT INTO " + ClaimMain.TABLE_CLAIMS + " (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
 
                         for (CompletableFuture<ClaimData> future : futureClaims) {
                             ClaimData claimData;
@@ -1460,7 +1464,7 @@ public class ClaimMain {
 
                         Runnable task = () -> {
                             instance.executeAsync(() -> {
-                                try (PreparedStatement stmt = connection.prepareStatement("INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                                try (PreparedStatement stmt = connection.prepareStatement("INSERT INTO " + ClaimMain.TABLE_CLAIMS + " (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                                     stmt.setInt(1, id);
                                     stmt.setString(2, owner_uuid);
                                     stmt.setString(3, owner_name);
@@ -1568,7 +1572,7 @@ public class ClaimMain {
                     String chunksData = serializeChunks(chunks);
                     try (Connection connection = instance.getDataSource().getConnection();
                          PreparedStatement stmt = connection.prepareStatement(
-                                 "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                                 "INSERT INTO " + ClaimMain.TABLE_CLAIMS + " (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                         stmt.setInt(1, id);
                         stmt.setString(2, owner);
                         stmt.setString(3, owner_name);
@@ -1663,7 +1667,7 @@ public class ClaimMain {
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection();
                      PreparedStatement stmt = connection.prepareStatement(
-                             "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                             "INSERT INTO " + ClaimMain.TABLE_CLAIMS + " (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                     stmt.setInt(1, id);
                     stmt.setString(2, uuid);
                     stmt.setString(3, owner);
@@ -1697,10 +1701,10 @@ public class ClaimMain {
 
                 try (Statement stmt = connection.createStatement()) {
 
-                    String sql = "TRUNCATE TABLE scs_claims_1";
+                    String sql = "TRUNCATE TABLE " + ClaimMain.TABLE_CLAIMS;
                     stmt.executeUpdate(sql);
 
-                    sql = "TRUNCATE TABLE scs_players";
+                    sql = "TRUNCATE TABLE " + ClaimMain.TABLE_PLAYERS;
                     stmt.executeUpdate(sql);
 
                 } catch (SQLException e) {
@@ -1718,11 +1722,11 @@ public class ClaimMain {
             localConfig.setDriverClassName("org.sqlite.JDBC");
             try (HikariDataSource localDataSource = new HikariDataSource(localConfig);
                  Connection localConn = localDataSource.getConnection();
-                 PreparedStatement selectStmt = localConn.prepareStatement("SELECT id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans FROM scs_claims_1");
+                 PreparedStatement selectStmt = localConn.prepareStatement("SELECT id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans FROM " + ClaimMain.TABLE_CLAIMS);
                  ResultSet rs = selectStmt.executeQuery();
                  Connection remoteConn = instance.getDataSource().getConnection();
                  PreparedStatement insertStmt = remoteConn.prepareStatement(
-                         "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                         "INSERT INTO " + ClaimMain.TABLE_CLAIMS + " (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, for_sale, sale_price, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                  )) {
 
                 int count = 0;
@@ -1753,11 +1757,11 @@ public class ClaimMain {
 
             try (HikariDataSource localDataSource = new HikariDataSource(localConfig);
                  Connection localConn = localDataSource.getConnection();
-                 PreparedStatement selectStmt = localConn.prepareStatement("SELECT uuid_server, uuid_mojang, player_name, player_head, player_textures FROM scs_players");
+                 PreparedStatement selectStmt = localConn.prepareStatement("SELECT uuid_server, uuid_mojang, player_name, player_head, player_textures FROM " + ClaimMain.TABLE_PLAYERS);
                  ResultSet rs = selectStmt.executeQuery();
                  Connection remoteConn = instance.getDataSource().getConnection();
                  PreparedStatement insertStmt = remoteConn.prepareStatement(
-                         "INSERT INTO scs_players (uuid_server, uuid_mojang, player_name, player_head, player_textures) VALUES (?, ?, ?, ?, ?)"
+                         "INSERT INTO " + ClaimMain.TABLE_PLAYERS + " (uuid_server, uuid_mojang, player_name, player_head, player_textures) VALUES (?, ?, ?, ?, ?)"
                  )) {
 
                 int count = 0;
@@ -1849,11 +1853,11 @@ public class ClaimMain {
         // Checking permissions (for update or new features)
         try (Connection connection = instance.getDataSource().getConnection()) {
             connection.setAutoCommit(false); // Start transaction
-            String insertQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE id = ?";
-            String updateQuery = "UPDATE scs_claims_1 SET members = ?, bans = ? WHERE id = ?";
+            String insertQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET permissions = ? WHERE id = ?";
+            String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET members = ?, bans = ? WHERE id = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
                 PreparedStatement preparedStatement2 = connection.prepareStatement(updateQuery);
-                String getQuery = "SELECT * FROM scs_claims_1";
+                String getQuery = "SELECT * FROM " + ClaimMain.TABLE_CLAIMS;
                 try (PreparedStatement stat = connection.prepareStatement(getQuery);
                      ResultSet resultSet = stat.executeQuery()) {
 
@@ -2000,7 +2004,7 @@ public class ClaimMain {
         int protected_areas_count = 0;
         Map<String,String> owners = new HashMap<>();
         try (Connection connection = instance.getDataSource().getConnection()) {
-            String getQuery = "SELECT * FROM scs_claims_1";
+            String getQuery = "SELECT * FROM " + ClaimMain.TABLE_CLAIMS;
             try (PreparedStatement preparedStatement = connection.prepareStatement(getQuery)) {
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     while (resultSet.next()) {
@@ -2311,7 +2315,7 @@ public class ClaimMain {
                 boolean dbOk;
                 try (Connection connection = instance.getDataSource().getConnection();
                      PreparedStatement stmt = connection.prepareStatement(
-                             "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) " +
+                             "INSERT INTO " + ClaimMain.TABLE_CLAIMS + " (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) " +
                                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                      )) {
 
@@ -2467,7 +2471,7 @@ public class ClaimMain {
     private boolean insertClaimIntoDatabase(int id, String uuid, String owner, String claimName, String description, Chunk chunk, String locationString) {
         try (Connection connection = instance.getDataSource().getConnection();
              PreparedStatement stmt = connection.prepareStatement(
-                     "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                     "INSERT INTO " + ClaimMain.TABLE_CLAIMS + " (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
             stmt.setInt(1, id);
             stmt.setString(2, uuid);
             stmt.setString(3, owner);
@@ -2553,7 +2557,7 @@ public class ClaimMain {
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection();
                      PreparedStatement stmt = connection.prepareStatement(
-                             "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                             "INSERT INTO " + ClaimMain.TABLE_CLAIMS + " (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                     stmt.setInt(1, id);
                     stmt.setString(2, uuid);
                     stmt.setString(3, playerName);
@@ -2636,7 +2640,7 @@ public class ClaimMain {
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection();
                      PreparedStatement stmt = connection.prepareStatement(
-                             "INSERT INTO scs_claims_1 (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                             "INSERT INTO " + ClaimMain.TABLE_CLAIMS + " (id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, world_name, location, members, permissions, bans) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                     stmt.setInt(1, id);
                     stmt.setString(2, SERVER_UUID.toString());
                     stmt.setString(3, "*");
@@ -2875,7 +2879,7 @@ public class ClaimMain {
                         .collect(Collectors.joining(";"));
 
                 // Update the database
-                String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid = ? AND claim_name = ?";
+                String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET permissions = ? WHERE owner_uuid = ? AND claim_name = ?";
                 try (Connection connection = instance.getDataSource().getConnection();
                      PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                     preparedStatement.setString(1, permissionsString);
@@ -2936,7 +2940,7 @@ public class ClaimMain {
                         .collect(Collectors.joining(";"));
 
                 // Update the database
-                String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid = ? AND claim_name = ?";
+                String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET permissions = ? WHERE owner_uuid = ? AND claim_name = ?";
                 try (Connection connection = instance.getDataSource().getConnection();
                      PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                     preparedStatement.setString(1, permissions);
@@ -2987,7 +2991,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET permissions = ? WHERE owner_uuid = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, permissions);
                         preparedStatement.setString(2, uuid.toString());
@@ -3028,7 +3032,7 @@ public class ClaimMain {
                 String banString = getBanString(claim);
                 String memberString = getMemberString(claim);
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET bans = ?, members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET bans = ?, members = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, banString);
                         preparedStatement.setString(2, memberString);
@@ -3069,7 +3073,7 @@ public class ClaimMain {
                 // Update database
                 String banString = getBanString(claim);
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET bans = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET bans = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, banString);
                         preparedStatement.setString(2, uuid.toString());
@@ -3112,7 +3116,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET bans = ?, members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET bans = ?, members = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
                             preparedStatement.setString(1, getBanString(claim));
@@ -3155,7 +3159,7 @@ public class ClaimMain {
 
                 // Updata database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET bans = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET bans = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
                             preparedStatement.setString(1, getBanString(claim));
@@ -3198,7 +3202,7 @@ public class ClaimMain {
                 // Update database
                 String membersString = getMemberString(claim);
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET members = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, membersString);
                         preparedStatement.setString(2, uuid.toString());
@@ -3238,7 +3242,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET members = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
                             preparedStatement.setString(1, getMemberString(claim));
@@ -3280,7 +3284,7 @@ public class ClaimMain {
                 // Update database
                 String membersString = getMemberString(claim);
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, membersString);
                         preparedStatement.setString(2, uuid.toString());
@@ -3311,7 +3315,7 @@ public class ClaimMain {
                 // Update database
                 String membersString = getMemberString(claim);
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, membersString);
                         preparedStatement.setString(2, uuid.toString());
@@ -3349,7 +3353,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET Members = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         for (Claim claim : playerClaims.computeIfAbsent(uuid, k -> new CustomSet<>())) {
                             preparedStatement.setString(1, getMemberString(claim));
@@ -3397,7 +3401,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET claim_name = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET claim_name = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, name);
                         preparedStatement.setString(2, uuid.toString());
@@ -3434,7 +3438,7 @@ public class ClaimMain {
                 // Update database
                 String loc_string = String.valueOf(loc.getX()) + ";" + String.valueOf(loc.getY()) + ";" + String.valueOf(loc.getZ()) + ";" + String.valueOf(loc.getYaw()) + ";" + String.valueOf(loc.getPitch());
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET Location = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET Location = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, loc_string);
                         preparedStatement.setString(2, uuid.toString());
@@ -3496,7 +3500,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String deleteQuery = "DELETE FROM scs_claims_1 WHERE owner_uuid = ? AND claim_name = ?";
+                    String deleteQuery = "DELETE FROM " + ClaimMain.TABLE_CLAIMS + " WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
                         preparedStatement.setString(1, uuid.toString());
                         preparedStatement.setString(2, claim.getName());
@@ -3555,7 +3559,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String deleteQuery = "DELETE FROM scs_claims_1 WHERE owner_uuid = ?";
+                    String deleteQuery = "DELETE FROM " + ClaimMain.TABLE_CLAIMS + " WHERE owner_uuid = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
                         preparedStatement.setString(1, uuid.toString());
                         preparedStatement.executeUpdate();
@@ -3591,7 +3595,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET claim_description = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET claim_description = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, description);
                         preparedStatement.setString(2, uuid.toString());
@@ -3629,7 +3633,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET for_sale = true, sale_price = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET for_sale = true, sale_price = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, String.valueOf(price));
                         preparedStatement.setString(2, uuid.toString());
@@ -3666,7 +3670,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, uuid.toString());
                         preparedStatement.setString(2, claim.getName());
@@ -3708,7 +3712,7 @@ public class ClaimMain {
                 });
 
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET permissions = ? WHERE owner_uuid = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, defaultValue);
                         preparedStatement.setString(2, uuid.toString());
@@ -3750,7 +3754,7 @@ public class ClaimMain {
                 updateFlyChunk(claim);
 
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET Permissions = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET Permissions = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, defaultValue);
                         preparedStatement.setString(2, uuid.toString());
@@ -3788,7 +3792,7 @@ public class ClaimMain {
                     }
                 });
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET permissions = ? WHERE owner_uuid <> ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET permissions = ? WHERE owner_uuid <> ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, defaultValue);
                         preparedStatement.setString(2, SERVER_UUID.toString());
@@ -3882,7 +3886,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setInt(1, id);
                         preparedStatement.setString(2, playerId.toString());
@@ -3979,7 +3983,7 @@ public class ClaimMain {
 
                 // Updata database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setInt(1, id);
                         preparedStatement.setString(2, uuid_new_owner);
@@ -4041,7 +4045,7 @@ public class ClaimMain {
 
                 // Updata database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET id_claim = ?, owner_uuid = ?, owner_name = ?, members = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
 
                         for(Claim claim : claims) {
@@ -4092,6 +4096,269 @@ public class ClaimMain {
 
                         int[] n = preparedStatement.executeBatch();
                         return n[0]>0;
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        });
+    }
+
+    /**
+     * Transfer ownership of a claim without modifying members.
+     * Unlike setOwner, this method preserves the existing member list.
+     * Supports offline players.
+     *
+     * @param newOwnerName the name of the new owner
+     * @param claim the claim to transfer
+     * @return CompletableFuture with true if successful
+     */
+    public CompletableFuture<Boolean> transferOwnership(String newOwnerName, Claim claim) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String old_name = claim.getName();
+                String oldOwner = claim.getOwner();
+                UUID oldUuid = claim.getUUID();
+
+                // Update old owner's claims count if online
+                if (!oldOwner.equals("*")) {
+                    Player ownerP = Bukkit.getPlayer(oldOwner);
+                    if (ownerP != null && ownerP.isOnline()) {
+                        CPlayer cOwner = instance.getPlayerMain().getCPlayer(oldUuid);
+                        cOwner.setClaimsCount(cOwner.getClaimsCount() - 1);
+                    }
+                } else {
+                    oldUuid = SERVER_UUID;
+                }
+
+                // Remove claim from old owner's map
+                playerClaims.get(oldUuid).remove(claim);
+                if (playerClaims.get(oldUuid).isEmpty()) playerClaims.remove(oldUuid);
+
+                // Resolve new owner UUID (works for offline players)
+                UUID uuidNewOwner = instance.getPlayerMain().getPlayerUUID(newOwnerName);
+                String uuid_new_owner = uuidNewOwner.toString();
+
+                // Update new owner's claims count if online
+                Player newPlayer = Bukkit.getPlayer(newOwnerName);
+                if (newPlayer != null && newPlayer.isOnline()) {
+                    CPlayer cTarget = instance.getPlayerMain().getCPlayer(uuidNewOwner);
+                    cTarget.setClaimsCount(cTarget.getClaimsCount() + 1);
+                }
+
+                // Update claim owner (no member changes)
+                claim.setOwner(newOwnerName);
+                int id = findFreeId(uuidNewOwner);
+                String new_name = "claim-" + String.valueOf(id);
+                claim.setName(new_name);
+                claim.setId(id);
+                claim.setUUID(uuidNewOwner);
+
+                // Add claim to new owner's map
+                playerClaims.computeIfAbsent(uuidNewOwner, k -> new CustomSet<>()).add(claim);
+
+                // Update bossbars and maps
+                Set<Chunk> chunks = claim.getChunks();
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                getMapAutoForChunks(chunks);
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
+
+                // Update database (no members column update)
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET id_claim = ?, owner_uuid = ?, owner_name = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+                        preparedStatement.setInt(1, id);
+                        preparedStatement.setString(2, uuid_new_owner);
+                        preparedStatement.setString(3, newOwnerName);
+                        preparedStatement.setString(4, new_name);
+                        preparedStatement.setString(5, oldUuid.toString());
+                        preparedStatement.setString(6, old_name);
+                        preparedStatement.executeUpdate();
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        });
+    }
+
+    /**
+     * Transfer ownership of multiple claims without modifying members.
+     * Unlike setOwner, this method preserves the existing member list.
+     * Supports offline players.
+     *
+     * @param newOwner the name of the new owner
+     * @param claims the claims to transfer
+     * @param oldOwner the name of the old owner
+     * @return CompletableFuture with true if successful
+     */
+    public CompletableFuture<Boolean> transferOwnership(String newOwner, CustomSet<Claim> claims, String oldOwner) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                UUID uuid_real = instance.getPlayerMain().getPlayerUUID(oldOwner);
+                if (!oldOwner.equals("*")) {
+                    Player ownerP = Bukkit.getPlayer(oldOwner);
+                    if (ownerP != null && ownerP.isOnline()) {
+                        CPlayer cOwner = instance.getPlayerMain().getCPlayer(uuid_real);
+                        cOwner.setClaimsCount(cOwner.getClaimsCount() - claims.size());
+                    }
+                } else {
+                    uuid_real = SERVER_UUID;
+                }
+
+                // Remove claims from old owner's map
+                playerClaims.get(uuid_real).removeAll(claims);
+                if (playerClaims.get(uuid_real).isEmpty()) playerClaims.remove(uuid_real);
+
+                // Resolve new owner UUID (works for offline players)
+                UUID uuidNewOwner = instance.getPlayerMain().getPlayerUUID(newOwner);
+                String uuid_new_owner = uuidNewOwner.toString();
+                Player newPlayer = Bukkit.getPlayer(newOwner);
+                if (newPlayer != null && newPlayer.isOnline()) {
+                    CPlayer cTarget = instance.getPlayerMain().getCPlayer(uuidNewOwner);
+                    cTarget.setClaimsCount(cTarget.getClaimsCount() + claims.size());
+                }
+
+                // Update database (no members column update)
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET id_claim = ?, owner_uuid = ?, owner_name = ?, claim_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+
+                        for (Claim claim : claims) {
+                            int id = findFreeId(uuidNewOwner);
+                            String old_name = claim.getName();
+
+                            // Update claim owner (no member changes)
+                            claim.setOwner(newOwner);
+                            claim.setUUID(uuidNewOwner);
+                            claim.setId(id);
+                            String new_name = "claim-" + String.valueOf(id);
+                            claim.setName(new_name);
+
+                            // Add claim to new owner's map
+                            playerClaims.computeIfAbsent(uuidNewOwner, k -> new CustomSet<>()).add(claim);
+
+                            // Update bossbars and maps
+                            Set<Chunk> chunks = claim.getChunks();
+                            getMapAutoForChunks(chunks);
+                            instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                            if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
+                            if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
+                            if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
+
+                            preparedStatement.setInt(1, id);
+                            preparedStatement.setString(2, uuid_new_owner);
+                            preparedStatement.setString(3, newOwner);
+                            preparedStatement.setString(4, new_name);
+                            preparedStatement.setString(5, uuid_real.toString());
+                            preparedStatement.setString(6, old_name);
+                            preparedStatement.addBatch();
+                        }
+
+                        int[] n = preparedStatement.executeBatch();
+                        return n[0] > 0;
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        });
+    }
+
+    /**
+     * Transfer ownership of multiple claims without modifying members
+     * AND without renaming claims. Claim names are preserved as-is.
+     * Designed for town succession where claim names are town-based, not owner-based.
+     *
+     * @param newOwner the name of the new owner
+     * @param claims the claims to transfer
+     * @param oldOwner the name of the old owner
+     * @return CompletableFuture with true if successful
+     */
+    public CompletableFuture<Boolean> transferOwnershipKeepName(String newOwner, CustomSet<Claim> claims, String oldOwner) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                UUID uuid_real = instance.getPlayerMain().getPlayerUUID(oldOwner);
+                if (!oldOwner.equals("*")) {
+                    Player ownerP = Bukkit.getPlayer(oldOwner);
+                    if (ownerP != null && ownerP.isOnline()) {
+                        CPlayer cOwner = instance.getPlayerMain().getCPlayer(uuid_real);
+                        cOwner.setClaimsCount(cOwner.getClaimsCount() - claims.size());
+                    }
+                } else {
+                    uuid_real = SERVER_UUID;
+                }
+
+                // Remove claims from old owner's map
+                playerClaims.get(uuid_real).removeAll(claims);
+                if (playerClaims.get(uuid_real).isEmpty()) playerClaims.remove(uuid_real);
+
+                // Resolve new owner UUID (works for offline players)
+                UUID uuidNewOwner = instance.getPlayerMain().getPlayerUUID(newOwner);
+                String uuid_new_owner = uuidNewOwner.toString();
+                Player newPlayer = Bukkit.getPlayer(newOwner);
+                if (newPlayer != null && newPlayer.isOnline()) {
+                    CPlayer cTarget = instance.getPlayerMain().getCPlayer(uuidNewOwner);
+                    cTarget.setClaimsCount(cTarget.getClaimsCount() + claims.size());
+                }
+
+                // Update database (no members column update, no name change)
+                try (Connection connection = instance.getDataSource().getConnection()) {
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET id_claim = ?, owner_uuid = ?, owner_name = ?, for_sale = false, sale_price = 0 WHERE owner_uuid = ? AND claim_name = ?";
+                    try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+
+                        for (Claim claim : claims) {
+                            int id = findFreeId(uuidNewOwner);
+                            String claim_name = claim.getName(); // 이름 유지
+
+                            // Update claim owner only (no member changes, no name change)
+                            claim.setOwner(newOwner);
+                            claim.setUUID(uuidNewOwner);
+                            claim.setId(id);
+                            // claim.setName() 호출 안 함 — 이름 유지
+
+                            // Add claim to new owner's map
+                            playerClaims.computeIfAbsent(uuidNewOwner, k -> new CustomSet<>()).add(claim);
+
+                            // Update bossbars and maps
+                            Set<Chunk> chunks = claim.getChunks();
+                            getMapAutoForChunks(chunks);
+                            instance.executeSync(() -> instance.getBossBars().activateBossBar(chunks));
+                            if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().updateName(claim);
+                            if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().updateName(claim);
+                            if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().updateName(claim);
+
+                            preparedStatement.setInt(1, id);
+                            preparedStatement.setString(2, uuid_new_owner);
+                            preparedStatement.setString(3, newOwner);
+                            preparedStatement.setString(4, uuid_real.toString());
+                            preparedStatement.setString(5, claim_name);
+                            preparedStatement.addBatch();
+                        }
+
+                        int[] n = preparedStatement.executeBatch();
+                        return n[0] > 0;
                     } catch (SQLException e) {
                         e.printStackTrace();
                         return false;
@@ -4159,7 +4426,7 @@ public class ClaimMain {
 
                         // Update database
                         try (Connection connection = instance.getDataSource().getConnection()) {
-                            String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                            String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
                             try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                                 preparedStatement.setString(1, chunksData);
                                 preparedStatement.setString(2, uuid.toString());
@@ -4197,7 +4464,7 @@ public class ClaimMain {
 
                     // Update database
                     try (Connection connection = instance.getDataSource().getConnection()) {
-                        String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                        String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
                         try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                             preparedStatement.setString(1, chunksData);
                             preparedStatement.setString(2, uuid.toString());
@@ -4250,7 +4517,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, chunksData);
                         preparedStatement.setString(2, uuid.toString());
@@ -4303,7 +4570,7 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, chunksData);
                         preparedStatement.setString(2, uuid.toString());
@@ -4371,14 +4638,14 @@ public class ClaimMain {
 
                 // Update database
                 try (Connection connection = instance.getDataSource().getConnection()) {
-                    String updateQuery = "UPDATE scs_claims_1 SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
+                    String updateQuery = "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET chunks = ? WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
                         preparedStatement.setString(1, chunksData);
                         preparedStatement.setString(2, uuid_string);
                         preparedStatement.setString(3, claim1.getName());
                         preparedStatement.executeUpdate();
                     }
-                    String deleteQuery = "DELETE FROM scs_claims_1 WHERE owner_uuid = ? AND claim_name = ?";
+                    String deleteQuery = "DELETE FROM " + ClaimMain.TABLE_CLAIMS + " WHERE owner_uuid = ? AND claim_name = ?";
                     try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
                         for(Claim claim : claims) {
                             preparedStatement.setString(1, uuid_string);
@@ -5208,7 +5475,7 @@ public class ClaimMain {
                     try (final Connection connection = instance.getDataSource().getConnection();
                          final PreparedStatement ps = connection.prepareStatement(
                                  "SELECT id_claim, owner_uuid, owner_name, claim_name, claim_description, chunks, location, members, permissions, for_sale, sale_price, bans " +
-                                         "FROM scs_claims_1 WHERE world_name = ?"
+                                         "FROM " + ClaimMain.TABLE_CLAIMS + " WHERE world_name = ?"
                          )) {
 
                         ps.setString(1, worldName);

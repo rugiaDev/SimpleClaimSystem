@@ -83,7 +83,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
     
     public static Set<String> commands = Set.of("settings", "add", "remove", "list", "setspawn", "setname", "members", "setdesc",
             "chat", "map", "autoclaim", "automap", "see", "tp", "ban", "unban", "bans", "fly", "autofly", "owner", "merge", "sell", "cancel",
-            "main", "delchunk", "addchunk", "chunks", "kick", "buy", "autounclaim", "autoaddchunk", "autodelchunk", "accept", "deny", "cancelinv");
+            "main", "delchunk", "addchunk", "chunks", "kick", "buy", "autounclaim", "autoaddchunk", "autodelchunk", "accept", "deny", "cancelinv", "transfer");
     
     
     // ******************
@@ -1124,6 +1124,61 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             			instance.executeEntitySync(player, () -> player.sendMessage(instance.getLanguage().getMessage("error")));
             		}
             	})
+                .exceptionally(ex -> {
+                    ex.printStackTrace();
+                    return null;
+                });
+            return;
+        }
+        if (args[0].equalsIgnoreCase("transfer")) {
+            if (!instance.getPlayerMain().checkPermPlayer(player, "scs.command.claim.transfer")) {
+                player.sendMessage(instance.getLanguage().getMessage("cmd-no-permission"));
+                return;
+            }
+            // Resolve target player (supports offline)
+            UUID targetUUID = instance.getPlayerMain().getPlayerUUID(args[2]);
+            String targetName = instance.getPlayerMain().getPlayerName(targetUUID);
+            if (targetName == null) targetName = args[2];
+            if (targetName.equals(playerName)) {
+                player.sendMessage(instance.getLanguage().getMessage("cant-transfer-ownership-yourself"));
+                return;
+            }
+            if (args[1].equalsIgnoreCase("*")) {
+                if (cPlayer.getClaimsCount() == 0) {
+                    player.sendMessage(instance.getLanguage().getMessage("player-has-no-claim"));
+                    return;
+                }
+                String finalTargetName = targetName;
+                String message = instance.getLanguage().getMessage("transfer-all-claims-success").replace("%owner%", targetName);
+                instance.getMain().transferOwnership(targetName, instance.getMain().getPlayerClaims(playerName), playerName)
+                    .thenAccept(success -> {
+                        if (success) {
+                            instance.executeEntitySync(player, () -> player.sendMessage(message));
+                        } else {
+                            instance.executeEntitySync(player, () -> player.sendMessage(instance.getLanguage().getMessage("error")));
+                        }
+                    })
+                    .exceptionally(ex -> {
+                        ex.printStackTrace();
+                        return null;
+                    });
+                return;
+            }
+            Claim claim = instance.getMain().getClaimByName(args[1], player);
+            if (claim == null) {
+                player.sendMessage(instance.getLanguage().getMessage("claim-player-not-found"));
+                return;
+            }
+            String finalTargetName = targetName;
+            String message = instance.getLanguage().getMessage("transfer-claim-success").replace("%owner%", targetName).replace("%claim-name%", claim.getName());
+            instance.getMain().transferOwnership(targetName, claim)
+                .thenAccept(success -> {
+                    if (success) {
+                        instance.executeEntitySync(player, () -> player.sendMessage(message));
+                    } else {
+                        instance.executeEntitySync(player, () -> player.sendMessage(instance.getLanguage().getMessage("error")));
+                    }
+                })
                 .exceptionally(ex -> {
                     ex.printStackTrace();
                     return null;
@@ -2947,6 +3002,10 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
                 completions.add("*");
                 completions.addAll(main.getClaimsNameFromOwner(playerName));
                 break;
+            case "transfer":
+            	completions.addAll(main.getClaimsNameFromOwner(playerName));
+            	completions.add("*");
+            	break;
             case "owner":
             case "kick":
             	if (main.checkIfClaimExists(chunk) && main.getClaim(chunk).getOwner().equals(playerName)) {
@@ -3003,6 +3062,7 @@ public class ClaimCommand implements CommandExecutor, TabCompleter {
             case "ban":
             case "owner":
             case "kick":
+            case "transfer":
                 completions.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()));
                 completions.remove(playerName);
                 break;

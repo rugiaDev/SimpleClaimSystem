@@ -395,6 +395,10 @@ public class SimpleClaimSystem extends JavaPlugin {
 
       // Check database
       String configC = getConfig().getString("database");
+
+      // Configurable table names (fallback to the historical defaults if absent)
+      ClaimMain.TABLE_CLAIMS = getConfig().getString("database-settings.table-claims", "scs_claims_1");
+      ClaimMain.TABLE_PLAYERS = getConfig().getString("database-settings.table-players", "scs_players");
       if (configC.equalsIgnoreCase("true")) {
         // Create data source
         HikariConfig configH = new HikariConfig();
@@ -1045,6 +1049,10 @@ public class SimpleClaimSystem extends JavaPlugin {
 
       // Check database
       String configC = getConfig().getString("database");
+
+      // Configurable table names (fallback to the historical defaults if absent)
+      ClaimMain.TABLE_CLAIMS = getConfig().getString("database-settings.table-claims", "scs_claims_1");
+      ClaimMain.TABLE_PLAYERS = getConfig().getString("database-settings.table-players", "scs_players");
 
       if (dataSource != null) {
         try { dataSource.close(); } catch (Exception ignore) {}
@@ -2272,7 +2280,7 @@ public class SimpleClaimSystem extends JavaPlugin {
 
       if (isMySql) {
         stmt.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS scs_claims_1 ("
+                "CREATE TABLE IF NOT EXISTS " + ClaimMain.TABLE_CLAIMS + " ("
                         + "id INT AUTO_INCREMENT PRIMARY KEY, "
                         + "id_claim INT NOT NULL, "
                         + "owner_uuid CHAR(36) NOT NULL, "
@@ -2292,7 +2300,7 @@ public class SimpleClaimSystem extends JavaPlugin {
         );
 
         stmt.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS scs_players ("
+                "CREATE TABLE IF NOT EXISTS " + ClaimMain.TABLE_PLAYERS + " ("
                         + "id INT AUTO_INCREMENT PRIMARY KEY, "
                         + "uuid_server CHAR(36) NOT NULL UNIQUE, "
                         + "uuid_mojang CHAR(36) NOT NULL, "
@@ -2302,17 +2310,17 @@ public class SimpleClaimSystem extends JavaPlugin {
                         + ")"
         );
 
-        execIgnore.accept("CREATE INDEX idx_claims_owner_uuid ON scs_claims_1 (owner_uuid)");
-        execIgnore.accept("CREATE INDEX idx_claims_owner_idclaim ON scs_claims_1 (owner_uuid, id_claim)");
-        execIgnore.accept("CREATE INDEX idx_claims_for_sale ON scs_claims_1 (for_sale)");
-        execIgnore.accept("CREATE INDEX idx_claims_world_name ON scs_claims_1 (world_name)");
+        execIgnore.accept("CREATE INDEX idx_claims_owner_uuid ON " + ClaimMain.TABLE_CLAIMS + " (owner_uuid)");
+        execIgnore.accept("CREATE INDEX idx_claims_owner_idclaim ON " + ClaimMain.TABLE_CLAIMS + " (owner_uuid, id_claim)");
+        execIgnore.accept("CREATE INDEX idx_claims_for_sale ON " + ClaimMain.TABLE_CLAIMS + " (for_sale)");
+        execIgnore.accept("CREATE INDEX idx_claims_world_name ON " + ClaimMain.TABLE_CLAIMS + " (world_name)");
 
-        execIgnore.accept("CREATE INDEX idx_players_uuid_mojang ON scs_players (uuid_mojang)");
-        execIgnore.accept("CREATE INDEX idx_players_player_name ON scs_players (player_name)");
+        execIgnore.accept("CREATE INDEX idx_players_uuid_mojang ON " + ClaimMain.TABLE_PLAYERS + " (uuid_mojang)");
+        execIgnore.accept("CREATE INDEX idx_players_player_name ON " + ClaimMain.TABLE_PLAYERS + " (player_name)");
 
       } else {
         stmt.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS scs_claims_1 ("
+                "CREATE TABLE IF NOT EXISTS " + ClaimMain.TABLE_CLAIMS + " ("
                         + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                         + "id_claim INT NOT NULL, "
                         + "owner_uuid VARCHAR(36) NOT NULL, "
@@ -2331,7 +2339,7 @@ public class SimpleClaimSystem extends JavaPlugin {
         );
 
         stmt.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS scs_players ("
+                "CREATE TABLE IF NOT EXISTS " + ClaimMain.TABLE_PLAYERS + " ("
                         + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                         + "uuid_server VARCHAR(36) NOT NULL UNIQUE, "
                         + "uuid_mojang VARCHAR(36) NOT NULL, "
@@ -2341,18 +2349,18 @@ public class SimpleClaimSystem extends JavaPlugin {
                         + ")"
         );
 
-        stmt.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS uk_owner_claimname ON scs_claims_1 (owner_uuid, claim_name)");
-        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_owner_uuid ON scs_claims_1 (owner_uuid)");
-        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_owner_idclaim ON scs_claims_1 (owner_uuid, id_claim)");
-        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_for_sale ON scs_claims_1 (for_sale)");
-        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_world_name ON scs_claims_1 (world_name)");
+        stmt.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS uk_owner_claimname ON " + ClaimMain.TABLE_CLAIMS + " (owner_uuid, claim_name)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_owner_uuid ON " + ClaimMain.TABLE_CLAIMS + " (owner_uuid)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_owner_idclaim ON " + ClaimMain.TABLE_CLAIMS + " (owner_uuid, id_claim)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_for_sale ON " + ClaimMain.TABLE_CLAIMS + " (for_sale)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_claims_world_name ON " + ClaimMain.TABLE_CLAIMS + " (world_name)");
 
-        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_players_uuid_mojang ON scs_players (uuid_mojang)");
-        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_players_player_name ON scs_players (player_name)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_players_uuid_mojang ON " + ClaimMain.TABLE_PLAYERS + " (uuid_mojang)");
+        stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_players_player_name ON " + ClaimMain.TABLE_PLAYERS + " (player_name)");
       }
 
       stmt.executeUpdate(
-              "UPDATE scs_claims_1 SET owner_uuid = '" + ClaimMain.SERVER_UUID + "' WHERE owner_uuid = 'none'"
+              "UPDATE " + ClaimMain.TABLE_CLAIMS + " SET owner_uuid = '" + ClaimMain.SERVER_UUID + "' WHERE owner_uuid = 'none'"
       );
     }
   }
