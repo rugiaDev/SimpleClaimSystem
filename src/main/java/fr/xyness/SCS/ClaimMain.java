@@ -4545,22 +4545,18 @@ public class ClaimMain {
      */
     public CompletableFuture<Boolean> addClaimChunk(Claim claim, Chunk chunk){
         return CompletableFuture.supplyAsync(() -> {
+            // 결과(true / false)는 저장 성공 여부만 따른다 (10-30 마을 점유 '실패' 안내 뒤 실제로는 점유되던 것)
+            //  - 예전엔 메모리에 칸을 먼저 붙이고 보스바 · 날씨 · 비행 · 지도 갱신 중 예외가 나면 false 를 돌려줘
+            //    부른 쪽(LunaTown)은 실패로 보고 점유비를 돌려줬는데 칸은 붙은 채 남았다
+            //  - 이제 저장에 실패하면 붙인 칸을 되돌리고, 저장 뒤 화면 갱신 예외는 기록만 한다
+            Set<Chunk> previousChunks = new CustomSet<>(claim.getChunks());
+            if(previousChunks.contains(chunk)) return false;
+            Set<Chunk> chunks = new CustomSet<>(previousChunks);
+            chunks.add(chunk);
             try {
                 // Add chunk
-                Set<Chunk> chunks = new CustomSet<>(claim.getChunks());
-                if(chunks.contains(chunk)) return false;
-                chunks.add(chunk);
                 claim.setChunks(chunks);
                 listClaims.put(chunk,claim);
-
-                // Add bossbar and maps
-                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(claim);
-                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(claim);
-                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(claim);
-                instance.executeSync(() -> instance.getBossBars().activateBossBar(Set.of(chunk)));
-                updateWeatherChunk(claim);
-                updateFlyChunk(claim);
-                getMapAutoForChunks(chunks);
 
                 // Serialize chunks
                 String chunksData = serializeChunks(chunks);
@@ -4577,15 +4573,33 @@ public class ClaimMain {
                         preparedStatement.setString(3, claim.getName());
                         preparedStatement.executeUpdate();
                     }
-                    return true;
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    return false;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                claim.setChunks(previousChunks);
+                listClaims.remove(chunk, claim);
                 return false;
             }
+
+            // Add bossbar and maps
+            try {
+                if (instance.getSettings().getBooleanSetting("dynmap")) instance.getDynmap().createClaimZone(claim);
+                if (instance.getSettings().getBooleanSetting("bluemap")) instance.getBluemap().createClaimZone(claim);
+                if (instance.getSettings().getBooleanSetting("pl3xmap")) instance.getPl3xMap().createClaimZone(claim);
+                instance.executeSync(() -> instance.getBossBars().activateBossBar(Set.of(chunk)));
+                instance.executeSync(() -> {
+                    try {
+                        updateWeatherChunk(claim);
+                        updateFlyChunk(claim);
+                        getMapAutoForChunks(chunks);
+                    } catch (Exception e) {
+                        instance.getLogger().warning("addClaimChunk: chunk saved, display refresh failed - " + e);
+                    }
+                });
+            } catch (Exception e) {
+                instance.getLogger().warning("addClaimChunk: chunk saved, display refresh failed - " + e);
+            }
+            return true;
         });
     }
 
