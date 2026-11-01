@@ -290,13 +290,9 @@ public class FoliaClaimEvents implements Listener {
      * @param chunk  The chunk.
      */
     private void handleWeatherSettings(Player player, Chunk to, Chunk from) {
-    	Claim claimTo = instance.getMain().getClaim(to);
-    	Claim claimFrom = instance.getMain().getClaim(from);
-        if (instance.getMain().checkIfClaimExists(to) && !claimTo.getPermissionForPlayer("Weather",player)) {
-            player.setPlayerWeather(WeatherType.CLEAR);
-        } else if (instance.getMain().checkIfClaimExists(from) && !claimFrom.getPermissionForPlayer("Weather",player)) {
-            player.resetPlayerWeather();
-        }
+        // 기린 (11-01 디스코드 B59): 점유지 안을 화면만 맑게 바꾸지 않는다 — 실제 비는 그대로라 경작지가 젖었다. 바깥 실제 날씨와 같게,
+        //  예전에 맑게 바꿔 둔 사람은 풀어 준다
+        if (player.getPlayerWeather() != null) player.resetPlayerWeather();
     }
     
     /**

@@ -5326,12 +5326,8 @@ public class ClaimMain {
                 Bukkit.getRegionScheduler().run(instance, p.getLocation(), task -> {
                     Chunk c = p.getLocation().getChunk();
                     if(chunks.contains(c)) {
-                        boolean value = claim.getPermissionForPlayer("Weather", p);
-                        if(value) {
-                            p.resetPlayerWeather();
-                        } else {
-                            p.setPlayerWeather(WeatherType.CLEAR);
-                        }
+                        // 기린 (11-01 B59): 화면만 맑게 바꾸지 않는다 — 바깥 실제 날씨와 같게
+                        p.resetPlayerWeather();
                     }
                 });
             });
@@ -5339,12 +5335,8 @@ public class ClaimMain {
             Bukkit.getOnlinePlayers().stream().forEach(p -> {
                 Chunk c = p.getLocation().getChunk();
                 if(chunks.contains(c)) {
-                    boolean value = claim.getPermissionForPlayer("Weather", p);
-                    if(value) {
-                        p.resetPlayerWeather();
-                    } else {
-                        p.setPlayerWeather(WeatherType.CLEAR);
-                    }
+                    // 기린 (11-01 B59): 화면만 맑게 바꾸지 않는다 — 바깥 실제 날씨와 같게
+                    p.resetPlayerWeather();
                 }
             });
         }
