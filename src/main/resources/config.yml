@@ -67,6 +67,9 @@ claims-worlds-mode:
   example_world: DISABLED
   example_only_claims: SURVIVAL_REQUIRING_CLAIMS
 
+# Disable claims completely inside MythicDungeons dungeon instance worlds (nothing is protected or blocked there)
+mythicdungeons-disable: true
+
 # Where the protection messages are displayed
 # Allowed type : ACTION_BAR (default), BOSSBAR, SUBTITLE, TITLE and CHAT
 protection-message: ACTION_BAR

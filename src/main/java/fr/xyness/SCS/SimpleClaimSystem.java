@@ -646,6 +646,9 @@ public class SimpleClaimSystem extends JavaPlugin {
       }
       claimSettingsInstance.setWorlds(worlds);
 
+      // MythicDungeons 던전(인스턴스) 월드에서는 점유 기능을 통째로 끈다 (11-11)
+      claimSettingsInstance.setMythicDungeonsDisable(getConfig().getBoolean("mythicdungeons-disable", true));
+
       // Check the keep chunks loaded
       claimSettingsInstance.addSetting("keep-chunks-loaded", getConfig().getString("keep-chunks-loaded"));
 
@@ -1259,6 +1262,9 @@ public class SimpleClaimSystem extends JavaPlugin {
         getConfig().set("worlds-disabled", null);
       }
       claimSettingsInstance.setWorlds(worlds);
+
+      // MythicDungeons 던전(인스턴스) 월드에서는 점유 기능을 통째로 끈다 (11-11)
+      claimSettingsInstance.setMythicDungeonsDisable(getConfig().getBoolean("mythicdungeons-disable", true));
 
       // Check the keep chunks loaded
       claimSettingsInstance.addSetting("keep-chunks-loaded", getConfig().getString("keep-chunks-loaded"));

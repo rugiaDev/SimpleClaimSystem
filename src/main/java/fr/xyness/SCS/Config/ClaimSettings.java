@@ -17,6 +17,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 
+import fr.xyness.SCS.Support.ClaimMythicDungeons;
 import fr.xyness.SCS.Types.WorldMode;
 
 /**
@@ -84,6 +85,9 @@ public class ClaimSettings {
     
     /** Map of mode of worlds. */
     private Map<String,WorldMode> worlds = new HashMap<>();
+
+    /** MythicDungeons 던전 월드에서 점유 기능을 끌지 (config.yml mythicdungeons-disable, 기본 true). */
+    private boolean mythicDungeonsDisable = true;
     
     /** Map of worlds aliases. */
     private Map<String,String> worldsAliases = new HashMap<>();
@@ -295,8 +299,19 @@ public class ClaimSettings {
      * @return The world mode.
      */
     public WorldMode getWorldMode(String world) {
+    	// MythicDungeons 던전(인스턴스) 월드면 점유 기능을 통째로 끈다 — 아무것도 막지 않는다 (11-11 사용자)
+    	if (mythicDungeonsDisable && ClaimMythicDungeons.isDungeonWorld(world)) return WorldMode.DISABLED;
     	WorldMode mode = worlds.get(world);
     	return mode == null ? WorldMode.SURVIVAL : mode;
+    }
+
+    /**
+     * 던전 월드에서 점유 기능을 끌지 정한다 (config.yml mythicdungeons-disable).
+     *
+     * @param disable true 면 MythicDungeons 던전 월드에서 점유 기능을 끈다
+     */
+    public void setMythicDungeonsDisable(boolean disable) {
+        mythicDungeonsDisable = disable;
     }
     
     /**

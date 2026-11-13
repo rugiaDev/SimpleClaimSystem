@@ -42,6 +42,7 @@ dependencies {
     compileOnly("dev.folia:folia-api:1.20.4-R0.1-SNAPSHOT")
     implementation("com.zaxxer:HikariCP:4.0.3")
     compileOnly(files("libs/PlaceholderAPI-2.11.6.jar"))
+    compileOnly(files("libs/MythicDungeons-2.1.0-SNAPSHOT.jar"))
     compileOnly("com.github.LoneDev6:api-itemsadder:3.6.1")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.4") {
         exclude(group = "org.bstats", module = "bstats-bukkit")
